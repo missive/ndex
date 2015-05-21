@@ -1,0 +1,38 @@
+{
+  "name": "ndex",
+  "version": "0.1.0",
+  "description": "Ndex is an indexedDB wrapper",
+  "author": "Etienne Lemay <etienne@heliom.ca>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/missive/ndex.git"
+  },
+  "homepage": "https://github.com/missive/ndex",
+  "bugs": {
+    "url": "https://github.com/missive/ndex/issues"
+  },
+  "license": "MIT",
+  "keywords": [
+    "Ndex",
+    "indexedDB",
+    "indexeddb"
+  ],
+  "main": "lib/ndex.coffee",
+  "devDependencies": {
+    "chai": "^2.1.2",
+    "chai-as-promised": "^4.3.0",
+    "coffee-loader": "^0.7.2",
+    "coffee-script": "^1.8.0",
+    "del": "^1.1.1",
+    "gulp": "^3.8.10",
+    "gulp-connect": "^2.2.0",
+    "gulp-webpack": "^1.2.0",
+    "mocha-loader": "^0.7.1",
+    "raw-loader": "^0.5.1",
+    "simple-mock": "^0.2.9",
+    "webpack": "^1.5.3"
+  },
+  "scripts": {
+    "start": "./node_modules/.bin/gulp"
+  }
+}
