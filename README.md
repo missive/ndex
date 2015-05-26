@@ -221,11 +221,10 @@ migrations = {
 ![](http://f.cl.ly/items/3D1k1g1J0Z29381w2f3s/Screen%20Shot%202014-12-08%20at%2010.18.22%20PM.png)
 
 ## Logging
-Ndex has a built-in logging system that will group requests by transaction. Gives you a pretty accurate idea of what Ndex does for you and where you can refactor your requests.
+Ndex has a logging system that will group requests by transaction. Gives you a pretty accurate idea of what Ndex does for you and where you can refactor your requests.
+You can implement your own handler of use the built-in console one.
 ```js
-// Can be info, log, dir
-// `collapsed: true` by default
-Ndex.logging.use('info', { collapsed: false })
+connection.handleLogging(console)
 
 connection.users.add({ id: 1, name: 'e', job: 'developer' })
 connection.users.add({ id: 2, name: 'r', job: 'developer' })
@@ -241,6 +240,8 @@ setTimeout(function() {
 
 Without the timeout, Ndex will reuse the same transaction
 ```js
+connection.handleLogging(console)
+
 connection.users.add({ id: 1, name: 'e', job: 'developer' })
 connection.users.add({ id: 2, name: 'r', job: 'developer' })
 connection.users.add({ id: 3, name: 'p', job: 'developer' })

@@ -94,6 +94,23 @@ describe 'Connection', ->
         delay 0, done, =>
           expect(@connection.createTransaction.calls.length).to.equal(2)
 
+  describe 'Logging', ->
+    beforeEach ->
+      @connection = new Connection('foo', require('../fixtures/migrations'))
+      @connection.logging.handleLog = (@spy = simple.spy())
+
+    it 'calls the handler', (done) ->
+      expect(@spy.calls.length).to.equal(0)
+      @connection.add('users', { id: 1 })
+      @connection.add('users', { id: 2 })
+
+      delay 100, done, =>
+        expect(@spy.calls.length).to.equal(4)
+        expect(@spy.calls[0].arg.type).to.equal('transaction.start')
+        expect(@spy.calls[1].arg.type).to.equal('request')
+        expect(@spy.calls[2].arg.type).to.equal('request')
+        expect(@spy.calls[3].arg.type).to.equal('transaction.end')
+
   describe 'Methods', ->
     [BrowserAdapter, WorkerAdapter].forEach (AdapterClass) ->
       describe AdapterClass.name, ->

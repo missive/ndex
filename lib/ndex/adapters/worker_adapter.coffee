@@ -29,6 +29,10 @@ class WorkerAdapter extends Adapter
 
     console.info "Ndex: Worker for “#{name}” spawned at #{blobURL}"
 
+  handleLogging: (@handler) ->
+    @worker.postMessage
+      method: 'handleLogging'
+
   # Every method is sent to the worker
   # A promise if cached and resolved/rejected
   # on response
@@ -47,7 +51,8 @@ class WorkerAdapter extends Adapter
         args: args
 
   handleMessage: (e) =>
-    { id, resolve, reject } = e.data
+    { id, resolve, reject, method, args } = e.data
+    return this[method](args) if method
 
     promise = @promises[id]
     delete @promises[id]

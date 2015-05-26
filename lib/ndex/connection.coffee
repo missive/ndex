@@ -403,13 +403,9 @@ factory = ->
   class Connection.Logging
     constructor: ->
       @queues = []
-      @logMethod = null
-
-    use: (logMethod, @opts = {}) ->
-      @logMethod = logMethod
 
     addTransaction: (transaction, objectStoreNames) ->
-      return unless @logMethod
+      return unless @handleLog
 
       @queues.push {
         transaction: transaction
@@ -424,7 +420,7 @@ factory = ->
       transaction.addEventListener('error', callback)
 
     addRequest: (transaction, method, objectStoreName, indexName, data) ->
-      return unless @logMethod
+      return unless @handleLog
 
       queue = @queues.filter((q) -> q.transaction is transaction)[0]
       return unless queue
@@ -436,13 +432,10 @@ factory = ->
         data: data
 
     logTransaction: (transaction) ->
-      return unless @logMethod
+      return unless @handleLog
 
       queue = @queues.filter((q) -> q.transaction is transaction)[0]
       return unless queue
-
-      groupMethod = 'groupCollapsed'
-      groupMethod = 'group' if @opts.collapsed is false
 
       mode = if queue.transaction.mode is 'readwrite' then 'write' else 'read '
       requestsLenght = queue.requests.length
@@ -450,7 +443,10 @@ factory = ->
       end = Date.now()
       time = end - queue.start
 
-      console[groupMethod]('Ndex:', mode, queue.objectStoreNames, "#{time}ms", "(#{requestsLenght} request#{if requestsLenght > 1 then 's' else ''})")
+      this.handleLog
+        type: 'transaction.start'
+        data: "Ndex: #{mode} #{queue.objectStoreNames} #{time}ms (#{requestsLenght} request#{if requestsLenght > 1 then 's' else ''})"
+
       for request in queue.requests
         { method, objectStoreName, indexName, data } = request
         { key, data } = data if data
@@ -484,9 +480,12 @@ factory = ->
         if indexName
           logs = logs.concat(['INDEX', indexName])
 
-        console[@logMethod](logs...)
+        this.handleLog
+          type: 'request'
+          data: logs.join(' ')
 
-      console.groupEnd()
+      this.handleLog
+        type: 'transaction.end'
 
   # Public API
   return Connection.API

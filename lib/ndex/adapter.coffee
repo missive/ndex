@@ -12,6 +12,19 @@ class Adapter
   index: (objectStoreName, indexName) ->
     @connection.createNamespaceForIndex(indexName, objectStoreName, this)
 
+  handleLog: (args) ->
+    return unless @handler
+    return @handler(args) if @handler isnt console
+    { type, data } = args
+
+    switch type
+      when 'transaction.start'
+        console.groupCollapsed(data)
+      when 'request'
+        console.log(data)
+      when 'transaction.end'
+        console.groupEnd()
+
   # Async
   proxyObjectStoresNamespace: (objectStoreNames) ->
     @connection.createNamespaceForObjectStores(objectStoreNames, this)

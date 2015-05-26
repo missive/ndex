@@ -6,4 +6,7 @@ class BrowserAdapter extends Adapter
   handleMethod: (method, args...) ->
     @connection[method].apply(@connection, args)
 
+  handleLogging: (@handler) ->
+    @connection.logging.handleLog = => this.handleLog(arguments...)
+
 module.exports = BrowserAdapter
