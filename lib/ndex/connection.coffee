@@ -308,6 +308,10 @@ factory = ->
 
             # Limit
             if limit
+              # Limit functions where transfered as string to worker
+              if typeof limit is 'string'
+                limit = eval("__limit = #{limit}")
+
               if typeof limit is 'function' && limit(result)
                 return resolve(result)
               else if limit is result.length

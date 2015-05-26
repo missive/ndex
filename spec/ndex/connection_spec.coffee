@@ -392,8 +392,6 @@ describe 'Connection', ->
               ]
 
             it 'limits to a truthy function', ->
-              # Only works in main thread
-              return if @connection instanceof WorkerAdapter
               limit = (data) -> data.length is 3
 
               promise = @connection.users.where(limit: limit)

@@ -35,6 +35,10 @@ class WorkerAdapter extends Adapter
   handleMethod: (method, args...) ->
     id = @id++
 
+    # Cannot transfer functions to a worker
+    # Will be eval’d in the worker thread for supported functions (i.e. :limit predicate)
+    args = Helpers.stringifyFunctions(args)
+
     new Promise (resolve, reject) =>
       @promises[id] = { id: id, resolve: resolve, reject: reject }
       @worker.postMessage
