@@ -1,4 +1,5 @@
 Adapter = require('../adapter')
+Helpers = require('../helpers')
 ConnectionRaw = require('raw!../connection')
 WorkerRaw = require('raw!../workers/connection_worker')
 
@@ -15,8 +16,7 @@ class WorkerAdapter extends Adapter
 
     # Cannot transfer functions to a worker
     # Will be eval’d in the worker thread
-    for k, v of migrations
-      migrations[k] = v.toString().replace(/\s\s+/g, ' ')
+    migrations = Helpers.stringifyFunctions(migrations)
 
     blob = new Blob([ConnectionRaw, WorkerRaw])
     blobURL = window.URL.createObjectURL(blob)
