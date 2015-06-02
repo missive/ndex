@@ -7,13 +7,17 @@ handleLogging = ->
     postMessage(method: 'handleLog', args: args)
 
 self.onmessage = (e) =>
-  { id, method, args } = e.data
+  data = e.data
+  data = [data] unless Array.isArray(data)
 
-  # Intercept known methods
-  if typeof this[method] is 'function'
-    return this[method](args)
+  data.forEach (datum) =>
+    { id, method, args } = datum
 
-  # Unknown methods are relayed to @connection
-  @connection[method].apply(@connection, args)
-    .then (data)  -> postMessage(id: id, resolve: data)
-    .catch (data) -> postMessage(id: id, reject: data)
+    # Intercept known methods
+    if typeof this[method] is 'function'
+      return this[method](args)
+
+    # Unknown methods are relayed to @connection
+    @connection[method].apply(@connection, args)
+      .then (data)  -> postMessage(id: id, resolve: data)
+      .catch (data) -> postMessage(id: id, reject: data)

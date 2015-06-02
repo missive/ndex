@@ -7,6 +7,7 @@ class WorkerAdapter extends Adapter
   constructor: ->
     super
     @promises = {}
+    @messages = []
     @id = 1
     this.spawnWorker()
 
@@ -33,22 +34,33 @@ class WorkerAdapter extends Adapter
     @worker.postMessage
       method: 'handleLogging'
 
+  createPromiseForId: (id) ->
+    new Promise (resolve, reject) =>
+      @promises[id] = { id: id, resolve: resolve, reject: reject }
+
   # Every method is sent to the worker
   # A promise if cached and resolved/rejected
   # on response
   handleMethod: (method, args...) ->
     id = @id++
+    promise = this.createPromiseForId(id)
 
     # Cannot transfer functions to a worker
     # Will be eval’d in the worker thread for supported functions (i.e. :limit predicate)
     args = Helpers.stringifyFunctions(args)
 
-    new Promise (resolve, reject) =>
-      @promises[id] = { id: id, resolve: resolve, reject: reject }
-      @worker.postMessage
-        id: id
-        method: method
-        args: args
+    # Schedule only 1 postMessage per event loop
+    this.schedulePostMessage() unless @messages.length
+    @messages.push { id: id, method: method, args: args }
+
+    # Return a promise that will be resolved/rejected in handleMessage
+    promise
+
+  schedulePostMessage: ->
+    setTimeout =>
+      messages = @messages.splice(0)
+      @worker.postMessage(messages)
+    , 0
 
   handleMessage: (e) =>
     { id, resolve, reject, method, args } = e.data

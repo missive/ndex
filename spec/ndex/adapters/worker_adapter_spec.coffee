@@ -1,11 +1,16 @@
 WorkerAdapter = require('../../../lib/ndex/adapters/worker_adapter')
 Connection = require('../../../lib/ndex/connection')
 
-{ simple, expect } = require('../../spec_helper.coffee')
+{ simple, expect, helpers } = require('../../spec_helper.coffee')
+{ delay } = helpers
 
 describe 'WorkerAdapter < Adapter', ->
-  beforeEach ->
+  mockWorker = ->
+    simple.restore()
     simple.mock(Worker.prototype, 'postMessage', ->)
+
+  beforeEach ->
+    mockWorker()
     @connection = new Connection('foo', { foo_migration: -> this.doSomething() })
     @adapter = new WorkerAdapter(@connection)
 
@@ -28,22 +33,19 @@ describe 'WorkerAdapter < Adapter', ->
         foo_migration: 'function () { return this.doSomething(); }'
 
   describe '#handleMethod', ->
-    it '#postMessage to worker', ->
-      @adapter.open()
-      expect(@adapter.worker.postMessage.calls.length).to.equal(2)
-      expect(@adapter.worker.postMessage.calls[1].args).to.deep.equal [
-        id: 1
-        method: 'open'
-        args: []
-      ]
+    beforeEach -> mockWorker()
 
+    it 'schedules 1 #postMessage per event loop', (done) ->
       @adapter.get('foo', 1)
-      expect(@adapter.worker.postMessage.calls.length).to.equal(3)
-      expect(@adapter.worker.postMessage.calls[2].args).to.deep.equal [
-        id: 2
-        method: 'get'
-        args: ['foo', 1]
-      ]
+      @adapter.get('foo', 2)
+      @adapter.get('foo', 3)
+
+      delay 0, =>
+        @adapter.get('foo', 4)
+        @adapter.get('foo', 5)
+
+        delay 0, done, =>
+          expect(@adapter.worker.postMessage.calls.length).to.equal(2)
 
     it 'caches promises’ resolve/reject functions', ->
       length = Object.keys(@adapter.promises).length
