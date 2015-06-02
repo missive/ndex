@@ -3,7 +3,7 @@ Connection = require('../../lib/ndex/connection')
 
 { simple, expect } = require('../spec_helper.coffee')
 
-describe.only 'Adapter', ->
+describe 'Adapter', ->
   beforeEach ->
     @connection = new Connection('foo', {})
     @adapter = new Adapter(@connection)
