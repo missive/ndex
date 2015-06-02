@@ -461,9 +461,8 @@ describe 'Connection', ->
               ]
 
           describe ':remove', ->
-            it 'creates a write transaction', ->
-              # Can only be tested in main thread
-              return if @connection instanceof WorkerAdapter
+            # Can only be tested in BrowserAdapter
+            (if AdapterClass is BrowserAdapter then it else it.skip) 'creates a write transaction', ->
               simple.mock(@connection.connection, 'enqueue')
 
               @connection.users.where(eq: 1, remove: true)
