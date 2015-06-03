@@ -8,8 +8,8 @@ factory = ->
       @queue = {}
       @logging = new Connection.Logging
 
-    parseMigrations: (@migrations) ->
-      keys = Object.keys(@migrations).sort()
+    parseMigrations: (migrations) ->
+      keys = Object.keys(migrations).sort()
       keys.map (k) =>
         version = parseInt(k)
         titleMatches = k.match(/_(.+)/)
@@ -17,7 +17,7 @@ factory = ->
 
         version: version
         title: title
-        migration: @migrations[k]
+        migration: migrations[k]
         key: k
 
     deleteDatabase: ->
@@ -33,7 +33,9 @@ factory = ->
     open: ->
       return @dbPromise if @dbPromise
       @dbPromise = new Promise (resolve, reject) =>
-        request = indexedDB.open(@name, Date.now())
+        migrations = this.parseMigrations(@migrations)
+
+        request = indexedDB.open(@name, migrations.length + 1)
         request.onerror = (e) => reject(e)
 
         # Migrations
@@ -44,7 +46,6 @@ factory = ->
           migrationTransaction = new Connection.Migration(db, transaction)
           migrationTransaction.createObjectStore('migrations', keyPath: 'version')
 
-          migrations = this.parseMigrations(@migrations)
           for migration in migrations
             # Migrations functions where transfered as string to worker
             if typeof migration.migration is 'string'
