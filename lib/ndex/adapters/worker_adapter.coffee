@@ -72,6 +72,6 @@ class WorkerAdapter extends Adapter
     if 'resolve' of e.data
       promise.resolve(resolve)
     else
-      promise.reject(reject)
+      promise.reject(new Error(reject))
 
 module.exports = WorkerAdapter

@@ -33,6 +33,7 @@ factory = ->
     open: ->
       return @dbPromise if @dbPromise
       @dbPromise = new Promise (resolve, reject) =>
+        return reject('indexedDB isn’t supported') unless self.indexedDB
         migrations = this.parseMigrations(@migrations)
 
         request = indexedDB.open(@name, migrations.length + 1)
@@ -348,9 +349,13 @@ factory = ->
       if indexName then objectStore.index(indexName) else objectStore
 
     createTransaction: (mode, objectStoreName, callback) ->
-      this.open().then =>
-        transaction = @database.transaction([objectStoreName], mode)
-        callback(transaction)
+      this.open()
+        .then =>
+          transaction = @database.transaction([objectStoreName], mode)
+          callback(transaction)
+
+        .catch (err) =>
+          throw(err)
 
     # Queue
     # TOOD: Support multiple objectStores per transaction
