@@ -5,14 +5,17 @@ Connection = require('../../../lib/ndex/connection')
 { delay } = helpers
 
 describe 'WorkerAdapter < Adapter', ->
-  mockWorker = ->
+  mockWorker = (callback) ->
     simple.restore()
-    simple.mock(Worker.prototype, 'postMessage', ->)
+    delay 0, ->
+      simple.mock(Worker.prototype, 'postMessage', ->)
+      delay 0, callback
 
-  beforeEach ->
-    mockWorker()
-    @connection = new Connection('foo', { foo_migration: -> this.doSomething() })
-    @adapter = new WorkerAdapter(@connection)
+  beforeEach (done) ->
+    mockWorker =>
+      @connection = new Connection('foo', { foo_migration: -> this.doSomething() })
+      @adapter = new WorkerAdapter(@connection)
+      done()
 
   describe 'Worker', ->
     it 'spawns a worker on initialization', ->
@@ -33,7 +36,7 @@ describe 'WorkerAdapter < Adapter', ->
         foo_migration: 'function () { return this.doSomething(); }'
 
   describe '#handleMethod', ->
-    beforeEach -> mockWorker()
+    beforeEach (done) -> mockWorker(done)
 
     it 'schedules 1 #postMessage per event loop', (done) ->
       @adapter.get('foo', 1)
@@ -65,6 +68,8 @@ describe 'WorkerAdapter < Adapter', ->
         expect(@adapter.promises[i].reject).to.be.defined
 
   describe '#handleMessage', ->
+    beforeEach (done) -> mockWorker(done)
+
     it 'resolves promise when worker response is resolved', ->
       promise = @adapter.open()
 
