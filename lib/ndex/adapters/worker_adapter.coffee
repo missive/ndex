@@ -39,7 +39,7 @@ class WorkerAdapter extends Adapter
       @promises[id] = { id: id, resolve: resolve, reject: reject }
 
   # Every method is sent to the worker
-  # A promise if cached and resolved/rejected
+  # A promise is cached and resolved/rejected
   # on response
   handleMethod: (method, args...) ->
     id = @id++
