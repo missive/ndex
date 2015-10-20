@@ -421,9 +421,9 @@ factory = ->
       }
 
       callback = (e) => this.logTransaction(e.target)
-      transaction.addEventListener('abort', callback)
-      transaction.addEventListener('complete', callback)
-      transaction.addEventListener('error', callback)
+      transaction.onabort    = callback
+      transaction.onerror    = callback
+      transaction.oncomplete = callback
 
     addRequest: (transaction, method, objectStoreName, indexName, data) ->
       return unless @handleLog
