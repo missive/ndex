@@ -435,6 +435,22 @@ describe 'Connection', ->
                 { name: 'p', job: 'developer', id: 3, interests: ['b'] }
               ]
 
+          describe ':contains', ->
+            it 'returns items that contains an item', ->
+              promise = @connection.users.where(contains: { interests: 'a' })
+              expect(promise).to.eventually.deep.equal [
+                { name: 'e', job: 'developer', id: 1, interests: ['a'] }
+                { name: 'r', job: 'developer', id: 2, interests: ['a', 'b'] }
+              ]
+
+            it 'returns items that contains items', ->
+              promise = @connection.users.where(contains: { interests: ['a', 'b'] })
+              expect(promise).to.eventually.deep.equal [
+                { name: 'e', job: 'developer', id: 1, interests: ['a'] }
+                { name: 'r', job: 'developer', id: 2, interests: ['a', 'b'] }
+                { name: 'p', job: 'developer', id: 3, interests: ['b'] }
+              ]
+
           describe ':except', ->
             it 'returns items except matching', ->
               promise = @connection.users.where(except: { job: 'developer' })

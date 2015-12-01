@@ -223,7 +223,7 @@ factory = ->
       new Promise (resolve) =>
         this.enqueue readWrite, objectStoreName, (transaction) =>
           @logging.addRequest(transaction, 'where', objectStoreName, indexName, { data: predicates })
-          { lt, lteq, gt, gteq, eq, limit, offset, only, except, uniq, order, remove } = predicates
+          { lt, lteq, gt, gteq, eq, limit, offset, only, contains, except, uniq, order, remove } = predicates
 
           uniques = if Array.isArray(uniq) then uniq else if uniq then [uniq] else []
           order = if order is 'desc' then 'prev' else 'next'
@@ -274,7 +274,7 @@ factory = ->
 
           request = this.createRequest(transaction, objectStoreName, indexName)
           request = if range then request.openCursor(range, order) else request.openCursor()
-          request.onsuccess = (e) ->
+          request.onsuccess = (e) =>
             return resolve(result) unless cursor = e.target.result
             value = cursor.value
 
@@ -286,6 +286,15 @@ factory = ->
 
             for k, v of only
               return cursor.continue() unless hasValues(value, k, v)
+
+            # Contains
+            for k, v of contains
+              v = [v] unless Array.isArray(v)
+
+              a = value[k]
+              a = [a] unless Array.isArray(a)
+
+              return cursor.continue() unless this.intersect(a, v).length
 
             # Except
             for k, v of except
@@ -356,6 +365,17 @@ factory = ->
 
         .catch (err) =>
           throw(err)
+
+    intersect: (a, b) ->
+      ai = 0; bi = 0; result = []
+      while (ai < a.length && bi < b.length)
+        if      (a[ai] < b[bi]) then ai++
+        else if (a[ai] > b[bi]) then bi++
+        else
+          result.push(a[ai])
+          ai++; bi++
+
+      result
 
     # Queue
     # TOOD: Support multiple objectStores per transaction
