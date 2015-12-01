@@ -122,10 +122,10 @@ describe 'Connection', ->
             @connection = adapter
             @connection.clearAll()
               .then => Promise.all([
-                @connection.add('users', { name: 'e', job: 'developer', id: 1 })
-                @connection.add('users', { name: 'r', job: 'developer', id: 2 })
-                @connection.add('users', { name: 'p', job: 'developer', id: 3 })
-                @connection.add('users', { name: 't', job: 'designer' , id: 4 })
+                @connection.add('users', { name: 'e', job: 'developer', id: 1, interests: ['a']      })
+                @connection.add('users', { name: 'r', job: 'developer', id: 2, interests: ['a', 'b'] })
+                @connection.add('users', { name: 'p', job: 'developer', id: 3, interests: ['b']      })
+                @connection.add('users', { name: 't', job: 'designer' , id: 4, interests: []         })
               ])
               .then -> done()
 
@@ -133,23 +133,23 @@ describe 'Connection', ->
           it 'gets an item', ->
             promise = @connection.get('users', 2)
             expect(promise).to.eventually.deep.equal \
-              { name: 'r', job: 'developer', id: 2 }
+              { name: 'r', job: 'developer', id: 2, interests: ['a', 'b'] }
 
           it 'gets multiple items', ->
             promise = @connection.users.get([1, 3])
             expect(promise).to.eventually.deep.equal [
-              { name: 'e', job: 'developer', id: 1 }
-              { name: 'p', job: 'developer', id: 3 }
+              { name: 'e', job: 'developer', id: 1, interests: ['a'] }
+              { name: 'p', job: 'developer', id: 3, interests: ['b'] }
             ]
 
         describe '#getAll', ->
           it 'returns all items', ->
             promise = @connection.getAll('users')
             expect(promise).to.eventually.deep.equal [
-              { name: 'e', job: 'developer', id: 1 }
-              { name: 'r', job: 'developer', id: 2 }
-              { name: 'p', job: 'developer', id: 3 }
-              { name: 't', job: 'designer',  id: 4 }
+              { name: 'e', job: 'developer', id: 1, interests: ['a'] }
+              { name: 'r', job: 'developer', id: 2, interests: ['a', 'b'] }
+              { name: 'p', job: 'developer', id: 3, interests: ['b'] }
+              { name: 't', job: 'designer',  id: 4, interests: [] }
             ]
 
         describe '#add', ->
@@ -292,16 +292,16 @@ describe 'Connection', ->
           it 'removes an item', ->
             @connection.users.delete(2)
             expect(@connection.users.getAll()).to.eventually.deep.equal [
-              { name: 'e', job: 'developer', id: 1 }
-              { name: 'p', job: 'developer', id: 3 }
-              { name: 't', job: 'designer',  id: 4 }
+              { name: 'e', job: 'developer', id: 1, interests: ['a'] }
+              { name: 'p', job: 'developer', id: 3, interests: ['b'] }
+              { name: 't', job: 'designer',  id: 4, interests: [] }
             ]
 
           it 'removes multiple items', ->
             @connection.users.delete([1, 3])
             expect(@connection.users.getAll()).to.eventually.deep.equal [
-              { name: 'r', job: 'developer', id: 2 }
-              { name: 't', job: 'designer',  id: 4 }
+              { name: 'r', job: 'developer', id: 2, interests: ['a', 'b'] }
+              { name: 't', job: 'designer',  id: 4, interests: [] }
             ]
 
         describe '#clear', ->
@@ -330,21 +330,21 @@ describe 'Connection', ->
           it '#get', ->
             promise = @connection.users.index('job').get('designer')
             expect(promise).to.eventually.deep.equal \
-              { name: 't', job: 'designer',  id: 4 }
+              { name: 't', job: 'designer', id: 4, interests: [] }
 
           it '#getAll', ->
             promise = @connection.users.index('job').getAll()
             expect(promise).to.eventually.deep.equal [
-              { name: 't', job: 'designer',  id: 4 }
-              { name: 'e', job: 'developer', id: 1 }
-              { name: 'r', job: 'developer', id: 2 }
-              { name: 'p', job: 'developer', id: 3 }
+              { name: 't', job: 'designer',  id: 4, interests: [] }
+              { name: 'e', job: 'developer', id: 1, interests: ['a'] }
+              { name: 'r', job: 'developer', id: 2, interests: ['a', 'b'] }
+              { name: 'p', job: 'developer', id: 3, interests: ['b'] }
             ]
 
           it '#where', ->
             promise = @connection.users.index('job').where(limit: 1, offset: 2)
             expect(promise).to.eventually.deep.equal [
-              { name: 'r', job: 'developer', id: 2 }
+              { name: 'r', job: 'developer', id: 2, interests: ['a', 'b'] }
             ]
 
         describe '#where', ->
@@ -352,60 +352,60 @@ describe 'Connection', ->
             it 'returns all items lower than', ->
               promise = @connection.users.where(lt: 3)
               expect(promise).to.eventually.deep.equal [
-                { name: 'e', job: 'developer', id: 1 }
-                { name: 'r', job: 'developer', id: 2 }
+                { name: 'e', job: 'developer', id: 1, interests: ['a'] }
+                { name: 'r', job: 'developer', id: 2, interests: ['a', 'b'] }
               ]
 
           describe ':lteq', ->
             it 'returns all items lower or equal to', ->
               promise = @connection.users.where(lteq: 3)
               expect(promise).to.eventually.deep.equal [
-                { name: 'e', job: 'developer', id: 1 }
-                { name: 'r', job: 'developer', id: 2 }
-                { name: 'p', job: 'developer', id: 3 }
+                { name: 'e', job: 'developer', id: 1, interests: ['a'] }
+                { name: 'r', job: 'developer', id: 2, interests: ['a', 'b'] }
+                { name: 'p', job: 'developer', id: 3, interests: ['b'] }
               ]
 
           describe ':gt', ->
             it 'returns all items greater than', ->
               promise = @connection.users.where(gt: 3)
               expect(promise).to.eventually.deep.equal [
-                { name: 't', job: 'designer', id: 4 }
+                { name: 't', job: 'designer', id: 4, interests: [] }
               ]
 
           describe ':gteq', ->
             it 'returns all items greater or equal to', ->
               promise = @connection.users.where(gteq: 3)
               expect(promise).to.eventually.deep.equal [
-                { name: 'p', job: 'developer', id: 3 }
-                { name: 't', job: 'designer',  id: 4 }
+                { name: 'p', job: 'developer', id: 3, interests: ['b'] }
+                { name: 't', job: 'designer',  id: 4, interests: [] }
               ]
 
           describe ':eq', ->
             it 'returns all items equal to', ->
               promise = @connection.users.where(eq: 1)
               expect(promise).to.eventually.deep.equal [
-                { name: 'e', job: 'developer', id: 1 }
+                { name: 'e', job: 'developer', id: 1, interests: ['a'] }
               ]
 
             it 'supports array', ->
               promise = @connection.users.where(eq: [4, 1])
               expect(promise).to.eventually.deep.equal [
-                { name: 'e', job: 'developer', id: 1 }
-                { name: 't', job: 'designer',  id: 4 }
+                { name: 'e', job: 'developer', id: 1, interests: ['a'] }
+                { name: 't', job: 'designer',  id: 4, interests: [] }
               ]
 
             it 'merges :only when an array', ->
               promise = @connection.users.where(eq: [1, 4], only: { job: 'developer' })
               expect(promise).to.eventually.deep.equal [
-                { name: 'e', job: 'developer', id: 1 }
+                { name: 'e', job: 'developer', id: 1, interests: ['a'] }
               ]
 
           describe ':limit', ->
             it 'limits to a number', ->
               promise = @connection.users.where(limit: 2)
               expect(promise).to.eventually.deep.equal [
-                { name: 'e', job: 'developer', id: 1 }
-                { name: 'r', job: 'developer', id: 2 }
+                { name: 'e', job: 'developer', id: 1, interests: ['a'] }
+                { name: 'r', job: 'developer', id: 2, interests: ['a', 'b'] }
               ]
 
             it 'limits to a truthy function', ->
@@ -413,51 +413,51 @@ describe 'Connection', ->
 
               promise = @connection.users.where(limit: limit)
               expect(promise).to.eventually.deep.equal [
-                { name: 'e', job: 'developer', id: 1 }
-                { name: 'r', job: 'developer', id: 2 }
-                { name: 'p', job: 'developer', id: 3 }
+                { name: 'e', job: 'developer', id: 1, interests: ['a'] }
+                { name: 'r', job: 'developer', id: 2, interests: ['a', 'b'] }
+                { name: 'p', job: 'developer', id: 3, interests: ['b'] }
               ]
 
           describe ':offset', ->
             it 'offsets the items', ->
               promise = @connection.users.where(offset: 2)
               expect(promise).to.eventually.deep.equal [
-                { name: 'p', job: 'developer', id: 3 }
-                { name: 't', job: 'designer',  id: 4 }
+                { name: 'p', job: 'developer', id: 3, interests: ['b'] }
+                { name: 't', job: 'designer',  id: 4, interests: [] }
               ]
 
           describe ':only', ->
             it 'returns items matching only', ->
               promise = @connection.users.where(only: { job: 'developer' })
               expect(promise).to.eventually.deep.equal [
-                { name: 'e', job: 'developer', id: 1 }
-                { name: 'r', job: 'developer', id: 2 }
-                { name: 'p', job: 'developer', id: 3 }
+                { name: 'e', job: 'developer', id: 1, interests: ['a'] }
+                { name: 'r', job: 'developer', id: 2, interests: ['a', 'b'] }
+                { name: 'p', job: 'developer', id: 3, interests: ['b'] }
               ]
 
           describe ':except', ->
             it 'returns items except matching', ->
               promise = @connection.users.where(except: { job: 'developer' })
               expect(promise).to.eventually.deep.equal [
-                { name: 't', job: 'designer', id: 4 }
+                { name: 't', job: 'designer', id: 4, interests: [] }
               ]
 
           describe ':uniq', ->
             it 'returns only 1 item per uniq', ->
               promise = @connection.users.where(uniq: 'job')
               expect(promise).to.eventually.deep.equal [
-                { name: 'e', job: 'developer', id: 1 }
-                { name: 't', job: 'designer',  id: 4 }
+                { name: 'e', job: 'developer', id: 1, interests: ['a'] }
+                { name: 't', job: 'designer',  id: 4, interests: [] }
               ]
 
           describe ':order', ->
             it 'returns items in desc order', ->
               promise = @connection.users.where(order: 'desc')
               expect(promise).to.eventually.deep.equal [
-                { name: 'e', job: 'developer', id: 1 }
-                { name: 'r', job: 'developer', id: 2 }
-                { name: 'p', job: 'developer', id: 3 }
-                { name: 't', job: 'designer',  id: 4 }
+                { name: 'e', job: 'developer', id: 1, interests: ['a'] }
+                { name: 'r', job: 'developer', id: 2, interests: ['a', 'b'] }
+                { name: 'p', job: 'developer', id: 3, interests: ['b'] }
+                { name: 't', job: 'designer',  id: 4, interests: [] }
               ]
 
           describe ':remove', ->
