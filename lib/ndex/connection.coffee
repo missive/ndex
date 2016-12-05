@@ -69,8 +69,11 @@ factory = ->
           resolve(objectStoreNames)
 
     close: ->
-      delete @dbPromise if @dbPromise
-      @database.close() if @database
+      new Promise (resolve) =>
+        delete @dbPromise if @dbPromise
+        @database.close() if @database
+
+        resolve()
 
     get: (objectStoreName, key, indexName) ->
       new Promise (resolve) =>
