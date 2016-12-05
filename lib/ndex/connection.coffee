@@ -23,9 +23,7 @@ factory = ->
     deleteDatabase: ->
       new Promise (resolve) =>
         return resolve() unless @database
-
-        delete @dbPromise
-        @database.close()
+        this.close()
 
         request = indexedDB.deleteDatabase(@database.name)
         request.onsuccess = (e) -> setTimeout (-> resolve()), 0
@@ -65,11 +63,14 @@ factory = ->
 
           # Same DB opened on another tab
           db.onversionchange = =>
-            db.close()
-            delete @dbPromise
+            this.close()
 
           @database = db
           resolve(objectStoreNames)
+
+    close: ->
+      delete @dbPromise if @dbPromise
+      @database.close() if @database
 
     get: (objectStoreName, key, indexName) ->
       new Promise (resolve) =>
