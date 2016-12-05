@@ -37,7 +37,7 @@ factory = ->
         migrations = this.parseMigrations(@migrations)
 
         request = indexedDB.open(@name, migrations.length + 1)
-        request.onerror = (e) => reject(e)
+        request.onerror = (e) => reject(request.error.message)
 
         # Migrations
         request.onupgradeneeded = (e) =>
