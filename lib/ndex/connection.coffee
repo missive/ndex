@@ -34,8 +34,8 @@ factory = ->
         return reject('indexedDB isn’t supported') unless self.indexedDB
         migrations = this.parseMigrations(@migrations)
 
-        request = indexedDB.open(@name, migrations.length + 1)
-        request.onerror = (e) => reject(request.error.message)
+        try request = indexedDB.open(@name, migrations.length + 1)
+        catch e then return reject(e.message)
 
         # Migrations
         request.onupgradeneeded = (e) =>
@@ -67,6 +67,10 @@ factory = ->
 
           @database = db
           resolve(objectStoreNames)
+
+        # Error
+        request.onerror = (e) =>
+          reject(request.error.message)
 
     close: ->
       new Promise (resolve) =>

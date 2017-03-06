@@ -25,7 +25,7 @@ class Ndex
           if adapter instanceof WorkerAdapter
             # indexedDB not supported
             # Try to connect in the main thread
-            if /indexedDB isn’t supported/.test(error)
+            if /indexedDB isn’t supported|invalid security context/.test(error)
               adapter = @connections[name] = new BrowserAdapter(connection)
               return resolve(this.connect(null, null, adapter))
 
