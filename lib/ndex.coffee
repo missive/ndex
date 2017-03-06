@@ -27,6 +27,7 @@ class Ndex
             # Try to connect in the main thread
             if /indexedDB isn’t supported|invalid security context/.test(error)
               adapter = @connections[name] = new BrowserAdapter(connection)
+              console.info "Ndex: Fallbacking to BrowserAdapter for “#{name}”"
               return resolve(this.connect(null, null, adapter))
 
           reject(error)
