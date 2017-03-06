@@ -34,6 +34,7 @@
     "webpack": "^1.5.3"
   },
   "scripts": {
-    "start": "./node_modules/.bin/gulp"
+    "start": "gulp",
+    "dist": "gulp dist"
   }
 }
