@@ -35,7 +35,7 @@ factory = ->
         migrations = this.parseMigrations(@migrations)
 
         try request = indexedDB.open(@name, migrations.length + 1)
-        catch e then return reject(e.message)
+        catch e then return reject(e.message || e.name)
 
         # Migrations
         request.onupgradeneeded = (e) =>
@@ -70,7 +70,7 @@ factory = ->
 
         # Error
         request.onerror = (e) =>
-          reject(request.error.message)
+          reject(request.error.message || request.error.name)
 
     close: ->
       new Promise (resolve) =>
