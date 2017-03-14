@@ -28,7 +28,7 @@ class Ndex
             console.info "Ndex: Fallbacking to BrowserAdapter for “#{name}” because “#{error}”"
             return resolve(this.connect(null, null, adapter))
 
-          reject(error)
+          reject("Ndex: #{error}")
 
   getAdapter: (connection) ->
     adapterClass = this.getAdapterClass()
