@@ -102,7 +102,11 @@ factory = ->
           request = this.createRequest(transaction, objectStoreName, indexName)
           request.openCursor().onsuccess = (e) ->
             if cursor = e.target.result
-              resolve(cursor.value)
+              value = cursor.value
+              unless request.keyPath
+                value._key = cursor.key
+
+              resolve(value)
             else
               resolve(null)
 
@@ -115,7 +119,11 @@ factory = ->
           request = this.createRequest(transaction, objectStoreName, indexName)
           request.openCursor().onsuccess = (e) ->
             return resolve(result) unless cursor = e.target.result
-            result.push(cursor.value)
+            value = cursor.value
+            unless request.keyPath
+              value._key = cursor.key
+
+            result.push(value)
             cursor.continue()
 
     add: (objectStoreName, key, data) ->

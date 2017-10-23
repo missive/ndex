@@ -147,6 +147,15 @@ describe 'Connection', ->
             promise = @connection.getFirst('users')
             expect(promise).to.eventually.deep.equal { name: 'e', job: 'developer', id: 1, interests: ['a'] }
 
+          describe 'without a key', ->
+            beforeEach ->
+              @connection.add('organizations', 'heliom', { name: 'Heliom' })
+
+            it 'includes row key', ->
+              promise = @connection.organizations.getFirst()
+              expect(promise).to.eventually.deep.equal \
+                { name: 'Heliom', _key: 'heliom' }
+
         describe '#getAll', ->
           it 'returns all items', ->
             promise = @connection.getAll('users')
@@ -156,6 +165,17 @@ describe 'Connection', ->
               { name: 'p', job: 'developer', id: 3, interests: ['b'] }
               { name: 't', job: 'designer',  id: 4, interests: [] }
             ]
+
+          describe 'without a key', ->
+            beforeEach ->
+              @connection.add('organizations', ['heliom', 'abrico'], [{ name: 'Heliom' }, { name: 'Abrico' }])
+
+            it 'includes row key', ->
+              promise = @connection.organizations.getAll()
+              expect(promise).to.eventually.deep.equal [
+                { name: 'Abrico', _key: 'abrico' }
+                { name: 'Heliom', _key: 'heliom' }
+              ]
 
         describe '#add', ->
           describe 'with a key', ->
