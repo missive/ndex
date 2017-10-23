@@ -94,6 +94,18 @@ factory = ->
 
               resolve(value)
 
+    getFirst: (objectStoreName, indexName) ->
+      new Promise (resolve) =>
+        this.enqueue 'read', objectStoreName, (transaction) =>
+          @logging.addRequest(transaction, 'getFirst', objectStoreName, indexName)
+
+          request = this.createRequest(transaction, objectStoreName, indexName)
+          request.openCursor().onsuccess = (e) ->
+            if cursor = e.target.result
+              resolve(cursor.value)
+            else
+              resolve(null)
+
     getAll: (objectStoreName, indexName) ->
       new Promise (resolve) =>
         this.enqueue 'read', objectStoreName, (transaction) =>
@@ -340,8 +352,8 @@ factory = ->
             cursor.continue()
 
     # Helpers
-    getMethodsForObjectStore: -> @_getMethodsForObjectStore ||= ['get', 'getAll', 'add', 'update', 'increment', 'decrement', 'delete', 'deleteWhere', 'clear', 'reset', 'index', 'where']
-    getMethodsForIndex: -> @_getMethodsForIndex ||= ['get', 'getAll', 'where', 'deleteWhere']
+    getMethodsForObjectStore: -> @_getMethodsForObjectStore ||= ['get', 'getFirst', 'getAll', 'add', 'update', 'increment', 'decrement', 'delete', 'deleteWhere', 'clear', 'reset', 'index', 'where']
+    getMethodsForIndex: -> @_getMethodsForIndex ||= ['get', 'getFirst', 'getAll', 'where', 'deleteWhere']
 
     createNamespaceForObjectStores: (objectStoreNames = [], context = this) ->
       for objectStoreName in objectStoreNames
@@ -491,6 +503,8 @@ factory = ->
         switch method
           when 'get'
             logs = ['GET', key, 'FROM', objectStoreName]
+          when 'getFirst'
+            logs = ['GET FIRST', key, 'FROM', objectStoreName]
           when 'getAll'
             logs = ['GET ALL', 'FROM', objectStoreName]
           when 'add'

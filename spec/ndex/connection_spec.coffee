@@ -142,6 +142,11 @@ describe 'Connection', ->
               { name: 'p', job: 'developer', id: 3, interests: ['b'] }
             ]
 
+        describe '#getFirst', ->
+          it 'returns first item', ->
+            promise = @connection.getFirst('users')
+            expect(promise).to.eventually.deep.equal { name: 'e', job: 'developer', id: 1, interests: ['a'] }
+
         describe '#getAll', ->
           it 'returns all items', ->
             promise = @connection.getAll('users')
