@@ -155,21 +155,25 @@ describe 'Connection', ->
         describe '#add', ->
           describe 'with a key', ->
             it 'adds an item', ->
-              @connection.add('organizations', 'heliom', { name: 'heliom' })
+              addPromise = @connection.add('organizations', 'heliom', { name: 'heliom' })
+              expect(addPromise).to.eventually.deep.equal({ name: 'heliom', _key: 'heliom' })
               expect(@connection.organizations.get('heliom')).to.eventually.deep.equal({ name: 'heliom' })
 
             it 'adds multiple items', ->
-              @connection.add('organizations', ['heliom', 'abrico'], [{ name: 'heliom' }, { name: 'abrico' }])
+              addPromise = @connection.add('organizations', ['heliom', 'abrico'], [{ name: 'heliom' }, { name: 'abrico' }])
+              expect(addPromise).to.eventually.deep.equal([{ name: 'heliom', _key: 'heliom' }, { name: 'abrico', _key: 'abrico' }])
               expect(@connection.organizations.get('heliom')).to.eventually.deep.equal({ name: 'heliom' })
               expect(@connection.organizations.get('abrico')).to.eventually.deep.equal({ name: 'abrico' })
 
           describe 'without a key', ->
             it 'adds an item', ->
-              @connection.add('users', { name: 'foo', id: 5 })
+              addPromise = @connection.add('users', { name: 'foo', id: 5 })
+              expect(addPromise).to.eventually.deep.equal({ name: 'foo', id: 5, _key: 5 })
               expect(@connection.users.get(5)).to.eventually.deep.equal({ name: 'foo', id: 5 })
 
             it 'adds multiple items', ->
-              @connection.add('users', [{ foo: 'bar1', id: 1 }, { foo: 'bar2', id: 2 }])
+              addPromise = @connection.add('users', [{ foo: 'bar1', id: 1 }, { foo: 'bar2', id: 2 }])
+              expect(addPromise).to.eventually.deep.equal([{ foo: 'bar1', id: 1, _key: 1 }, { foo: 'bar2', id: 2, _key: 2 }])
               expect(@connection.users.get(1)).to.eventually.deep.equal({ foo: 'bar1', id: 1 })
               expect(@connection.users.get(2)).to.eventually.deep.equal({ foo: 'bar2', id: 2 })
 

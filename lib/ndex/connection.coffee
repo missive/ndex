@@ -122,6 +122,7 @@ factory = ->
             args = if key then [data, key] else [data]
             request = this.createRequest(transaction, objectStoreName)
             request.put(args...).onsuccess = (e) ->
+              data._key = e.target.result
               resolve(data)
 
     update: (objectStoreName, key, value) ->
