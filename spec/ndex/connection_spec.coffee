@@ -177,6 +177,11 @@ describe 'Connection', ->
                 { name: 'Heliom', _key: 'heliom' }
               ]
 
+        describe '#count', ->
+          it 'returns items count', ->
+            promise = @connection.count('users')
+            expect(promise).to.eventually.equal 4
+
         describe '#add', ->
           describe 'with a key', ->
             it 'adds an item', ->

@@ -126,6 +126,18 @@ factory = ->
             result.push(value)
             cursor.continue()
 
+    count: (objectStoreName, indexName) ->
+      new Promise (resolve) =>
+        this.enqueue 'read', objectStoreName, (transaction) =>
+          @logging.addRequest(transaction, 'count', objectStoreName, indexName)
+
+          request = this.createRequest(transaction, objectStoreName, indexName)
+          request.count().onsuccess = (e) ->
+            value = e.target.result
+            value = 0 unless value
+
+            resolve(value)
+
     add: (objectStoreName, key, data) ->
       [key, data] = [null, key] if data is undefined
 
@@ -360,8 +372,8 @@ factory = ->
             cursor.continue()
 
     # Helpers
-    getMethodsForObjectStore: -> @_getMethodsForObjectStore ||= ['get', 'getFirst', 'getAll', 'add', 'update', 'increment', 'decrement', 'delete', 'deleteWhere', 'clear', 'reset', 'index', 'where']
-    getMethodsForIndex: -> @_getMethodsForIndex ||= ['get', 'getFirst', 'getAll', 'where', 'deleteWhere']
+    getMethodsForObjectStore: -> @_getMethodsForObjectStore ||= ['get', 'getFirst', 'getAll', 'count', 'add', 'update', 'increment', 'decrement', 'delete', 'deleteWhere', 'clear', 'reset', 'index', 'where']
+    getMethodsForIndex: -> @_getMethodsForIndex ||= ['get', 'getFirst', 'getAll', 'count', 'where', 'deleteWhere']
 
     createNamespaceForObjectStores: (objectStoreNames = [], context = this) ->
       for objectStoreName in objectStoreNames
@@ -515,6 +527,8 @@ factory = ->
             logs = ['GET FIRST', key, 'FROM', objectStoreName]
           when 'getAll'
             logs = ['GET ALL', 'FROM', objectStoreName]
+          when 'count'
+            logs = ['COUNT', 'FROM', objectStoreName]
           when 'add'
             logs = ['ADD', JSON.stringify(data), 'TO', objectStoreName]
             logs = logs.concat(['WITH KEY', key]) if key
