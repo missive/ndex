@@ -94,6 +94,32 @@ describe 'Connection', ->
         delay 0, done, =>
           expect(@connection.createTransaction.calls.length).to.equal(2)
 
+  describe 'Timeouts', ->
+    beforeEach (done) ->
+      connection = new Connection('foo', require('../fixtures/migrations'))
+
+      adapter = new BrowserAdapter(connection)
+      adapter.handleMethod('open').then (objectStoreNames) =>
+        adapter.proxyObjectStoresNamespace(objectStoreNames)
+        @connection = adapter
+        @connection.clearAll()
+          .then => Promise.all [1..1000].map (id) =>
+            @connection.add('users', { name: "Foo-#{id}", job: 'developer', id: id })
+          .then ->
+            connection.REQUEST_TIMEOUT = 0
+            done()
+
+    # NOTE: This may fail from time to time (or always),
+    #       because connection is often faster than setTimeout 0
+    it 'rejects connection promise when time runs out', ->
+      connection = new Connection('foo', require('../fixtures/migrations'))
+      connection.CONNECTION_TIMEOUT = 0
+
+      expect(connection.open()).to.be.rejectedWith('Connection timed out')
+
+    it 'rejects request promise when time runs out', ->
+      expect(@connection.users.getAll()).to.be.rejectedWith('Request timed out')
+
   describe 'Logging', ->
     beforeEach ->
       @connection = new Connection('foo', require('../fixtures/migrations'))

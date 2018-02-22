@@ -3,6 +3,9 @@ factory = ->
 
   # Public API
   class Connection.API
+    CONNECTION_TIMEOUT: 3000
+    REQUEST_TIMEOUT: 3000
+
     constructor: (@name, @migrations) ->
       @database = null
       @queue = {}
@@ -34,11 +37,22 @@ factory = ->
         return reject('indexedDB isn’t supported') unless self.indexedDB
         migrations = this.parseMigrations(@migrations)
 
-        try request = indexedDB.open(@name, migrations.length + 1)
-        catch e then return reject(e.message || e.name)
+        try
+          request = indexedDB.open(@name, migrations.length + 1)
+          if @CONNECTION_TIMEOUT? && @CONNECTION_TIMEOUT > -1
+            request.__timeout = setTimeout ->
+              request.__timedout = true
+              reject(new Error('Connection timed out'))
+            , @CONNECTION_TIMEOUT
+        catch e
+          clearTimeout(request.__timeout)
+          return reject(e.message || e.name)
 
         # Migrations
         request.onupgradeneeded = (e) =>
+          clearTimeout(request.__timeout)
+          return if request.__timedout
+
           db = e.target.result
           transaction = e.target.transaction
 
@@ -57,6 +71,9 @@ factory = ->
 
         # Opened
         request.onsuccess = (e) =>
+          clearTimeout(request.__timeout)
+          return if request.__timedout
+
           db = e.target.result
           objectStoreNames = [].slice.call(db.objectStoreNames)
           this.createNamespaceForObjectStores(objectStoreNames)
@@ -80,27 +97,34 @@ factory = ->
         resolve()
 
     get: (objectStoreName, key, indexName) ->
-      new Promise (resolve) =>
+      new Promise (resolve, reject) =>
         if Array.isArray(key)
           promises = Promise.all key.map (k) => this.get(objectStoreName, k)
           promises.then(resolve)
         else
           this.enqueue 'read', objectStoreName, (transaction) =>
             @logging.addRequest(transaction, 'get', objectStoreName, indexName, { key: key })
-            request = this.createRequest(transaction, objectStoreName, indexName)
+
+            request = this.createRequest({ transaction, objectStoreName, indexName, reject })
             request.get(key).onsuccess = (e) ->
+              clearTimeout(request.__timeout)
+              return if request.__timedout
+
               value = e.target.result
               value = null if value is undefined
 
               resolve(value)
 
     getFirst: (objectStoreName, indexName) ->
-      new Promise (resolve) =>
+      new Promise (resolve, reject) =>
         this.enqueue 'read', objectStoreName, (transaction) =>
           @logging.addRequest(transaction, 'getFirst', objectStoreName, indexName)
 
-          request = this.createRequest(transaction, objectStoreName, indexName)
+          request = this.createRequest({ transaction, objectStoreName, indexName, reject })
           request.openCursor().onsuccess = (e) ->
+            clearTimeout(request.__timeout)
+            return if request.__timedout
+
             if cursor = e.target.result
               value = cursor.value
               unless request.keyPath
@@ -111,13 +135,16 @@ factory = ->
               resolve(null)
 
     getAll: (objectStoreName, indexName) ->
-      new Promise (resolve) =>
+      new Promise (resolve, reject) =>
         this.enqueue 'read', objectStoreName, (transaction) =>
           @logging.addRequest(transaction, 'getAll', objectStoreName, indexName)
-          result = []
 
-          request = this.createRequest(transaction, objectStoreName, indexName)
+          result = []
+          request = this.createRequest({ transaction, objectStoreName, indexName, reject })
           request.openCursor().onsuccess = (e) ->
+            clearTimeout(request.__timeout)
+            return if request.__timedout
+
             return resolve(result) unless cursor = e.target.result
             value = cursor.value
             unless request.keyPath
@@ -127,12 +154,15 @@ factory = ->
             cursor.continue()
 
     count: (objectStoreName, indexName) ->
-      new Promise (resolve) =>
+      new Promise (resolve, reject) =>
         this.enqueue 'read', objectStoreName, (transaction) =>
           @logging.addRequest(transaction, 'count', objectStoreName, indexName)
 
-          request = this.createRequest(transaction, objectStoreName, indexName)
+          request = this.createRequest({ transaction, objectStoreName, indexName, reject })
           request.count().onsuccess = (e) ->
+            clearTimeout(request.__timeout)
+            return if request.__timedout
+
             value = e.target.result
             value = 0 unless value
 
@@ -141,7 +171,7 @@ factory = ->
     add: (objectStoreName, key, data) ->
       [key, data] = [null, key] if data is undefined
 
-      new Promise (resolve) =>
+      new Promise (resolve, reject) =>
         if !key && Array.isArray(data)
           promises = Promise.all data.map (d) => this.add(objectStoreName, d)
           promises.then(resolve)
@@ -151,18 +181,26 @@ factory = ->
         else
           this.enqueue 'write', objectStoreName, (transaction) =>
             @logging.addRequest(transaction, 'add', objectStoreName, null, { key: key, data: data })
+
             args = if key then [data, key] else [data]
-            request = this.createRequest(transaction, objectStoreName)
+            request = this.createRequest({ transaction, objectStoreName, reject })
             request.put(args...).onsuccess = (e) ->
+              clearTimeout(request.__timeout)
+              return if request.__timedout
+
               data._key = e.target.result
               resolve(data)
 
     update: (objectStoreName, key, value) ->
-      new Promise (resolve) =>
+      new Promise (resolve, reject) =>
         this.enqueue 'write', objectStoreName, (transaction) =>
           @logging.addRequest(transaction, 'update', objectStoreName, null, { key: key, data: value })
-          getRequest = this.createRequest(transaction, objectStoreName)
+
+          getRequest = this.createRequest({ transaction, objectStoreName, reject })
           getRequest.get(key).onsuccess = (e) =>
+            clearTimeout(getRequest.__timeout)
+            return if getRequest.__timedout
+
             keyPath = e.target.source.keyPath
             hasKeyPath = !!keyPath
             data = e.target.result
@@ -182,16 +220,23 @@ factory = ->
               deepUpdate(value, data)
 
             args = if hasKeyPath then [data] else [data, key]
-            putRequest = this.createRequest(transaction, objectStoreName)
+            putRequest = this.createRequest({ transaction, objectStoreName, reject })
             putRequest.put(args...).onsuccess = ->
+              clearTimeout(putRequest.__timeout)
+              return if putRequest.__timedout
+
               resolve(data)
 
     increment: (objectStoreName, key, value = 1, decrement) ->
-      new Promise (resolve) =>
+      new Promise (resolve, reject) =>
         this.enqueue 'write', objectStoreName, (transaction) =>
           @logging.addRequest(transaction, (if decrement then 'decrement' else 'increment'), objectStoreName, null, { key: key, data: value })
-          getRequest = this.createRequest(transaction, objectStoreName)
+
+          getRequest = this.createRequest({ transaction, objectStoreName, reject })
           getRequest.get(key).onsuccess = (e) =>
+            clearTimeout(getRequest.__timeout)
+            return if getRequest.__timedout
+
             keyPath = e.target.source.keyPath
             hasKeyPath = !!keyPath
             data = e.target.result
@@ -212,23 +257,30 @@ factory = ->
               data += if decrement then -value else value
 
             args = if hasKeyPath then [data] else [data, key]
-            putRequest = this.createRequest(transaction, objectStoreName)
+            putRequest = this.createRequest({ transaction, objectStoreName, reject })
             putRequest.put(args...).onsuccess = ->
+              clearTimeout(putRequest.__timeout)
+              return if putRequest.__timedout
+
               resolve(data)
 
     decrement: (objectStoreName, key, value) ->
       this.increment(objectStoreName, key, value, true)
 
     delete: (objectStoreName, key) ->
-      new Promise (resolve) =>
+      new Promise (resolve, reject) =>
         if Array.isArray(key)
           promises = Promise.all key.map (k) => this.delete(objectStoreName, k)
           promises.then(resolve)
         else
           this.enqueue 'write', objectStoreName, (transaction) =>
             @logging.addRequest(transaction, 'delete', objectStoreName, null, { key: key })
-            request = this.createRequest(transaction, objectStoreName)
+
+            request = this.createRequest({ transaction, objectStoreName, reject })
             request.delete(key).onsuccess = (e) ->
+              clearTimeout(request.__timeout)
+              return if request.__timedout
+
               resolve(key)
 
     deleteWhere: (objectStoreName, predicates, indexName) ->
@@ -236,24 +288,34 @@ factory = ->
       this.where(objectStoreName, predicates, indexName)
 
     clear: (objectStoreName) ->
-      new Promise (resolve) =>
+      new Promise (resolve, reject) =>
         this.enqueue 'write', objectStoreName, (transaction) =>
           @logging.addRequest(transaction, 'clear', objectStoreName)
-          request = this.createRequest(transaction, objectStoreName)
-          request.clear().onsuccess = -> resolve()
+
+          request = this.createRequest({ transaction, objectStoreName, reject })
+          request.clear().onsuccess = ->
+            clearTimeout(request.__timeout)
+            return if request.__timedout
+
+            resolve()
 
     clearAll: ->
-      new Promise (resolve) =>
+      new Promise (resolve, reject) =>
         objectStoreNames = [@database.objectStoreNames...]
         objectStoreNames = objectStoreNames.filter (objectStoreName) -> objectStoreName isnt 'migrations'
 
         promises = Promise.all objectStoreNames.map (objectStoreName) => this.clear(objectStoreName)
         promises.then(resolve)
+        promises.catch(reject)
 
     reset: (objectStoreName, key, data) ->
-      new Promise (resolve) =>
-        this.clear(objectStoreName).then =>
-          this.add(objectStoreName, key, data).then(resolve)
+      new Promise (resolve, reject) =>
+        clearPromise = this.clear(objectStoreName)
+        clearPromise.catch(reject)
+        clearPromise.then =>
+          addPromise = this.add(objectStoreName, key, data)
+          addPromise.catch(reject)
+          addPromise.then(resolve)
 
     index: (objectStoreName, indexName) ->
       this.createNamespaceForIndex(indexName, objectStoreName)
@@ -261,11 +323,11 @@ factory = ->
     where: (objectStoreName, predicates, indexName) ->
       readWrite = if predicates.remove then 'write' else 'read'
 
-      new Promise (resolve) =>
+      new Promise (resolve, reject) =>
         this.enqueue readWrite, objectStoreName, (transaction) =>
           @logging.addRequest(transaction, 'where', objectStoreName, indexName, { data: predicates })
-          { lt, lteq, gt, gteq, eq, limit, offset, only, contains, except, uniq, order, remove } = predicates
 
+          { lt, lteq, gt, gteq, eq, limit, offset, only, contains, except, uniq, order, remove } = predicates
           uniques = if Array.isArray(uniq) then uniq else if uniq then [uniq] else []
           order = if order is 'desc' then 'prev' else 'next'
 
@@ -313,9 +375,12 @@ factory = ->
             v = [v] unless Array.isArray(v)
             v.indexOf(object[k]) isnt -1
 
-          request = this.createRequest(transaction, objectStoreName, indexName)
+          request = this.createRequest({ transaction, objectStoreName, indexName, reject })
           request = if range then request.openCursor(range, order) else request.openCursor()
           request.onsuccess = (e) =>
+            clearTimeout(request.__timeout)
+            return if request.__timedout
+
             return resolve(result) unless cursor = e.target.result
             value = cursor.value
 
@@ -394,9 +459,17 @@ factory = ->
 
       namespace
 
-    createRequest: (transaction, objectStoreName, indexName) ->
+    createRequest: ({ transaction, objectStoreName, indexName, reject }) ->
       objectStore = transaction.objectStore(objectStoreName)
-      if indexName then objectStore.index(indexName) else objectStore
+      request = if indexName then objectStore.index(indexName) else objectStore
+
+      if reject && @REQUEST_TIMEOUT? && @REQUEST_TIMEOUT > -1
+        request.__timeout = setTimeout ->
+          request.__timedout = true
+          reject(new Error('Request timed out'))
+        , @REQUEST_TIMEOUT
+
+      request
 
     createTransaction: (mode, objectStoreName, callback) ->
       this.open()
