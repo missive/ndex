@@ -33,7 +33,7 @@ describe 'WorkerAdapter < Adapter', ->
     it 'transfers migrations function as string', ->
       args = @adapter.worker.postMessage.firstCall.args[0]
       expect(args.args.migrations).to.deep.equal
-        foo_migration: 'function () { return this.doSomething(); }'
+        foo_migration: 'function() { return this.doSomething(); }'
 
   describe '#handleMethod', ->
     beforeEach (done) -> mockWorker(done)

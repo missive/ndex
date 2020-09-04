@@ -8,20 +8,20 @@ describe 'Helpers', ->
         fn = -> console.log 'fn'
         result = Helpers.stringifyFunctions(fn)
 
-        expect(result).to.equal "function () { return console.log('fn'); }"
+        expect(result).to.equal "function() { return console.log('fn'); }"
 
     describe 'when passing an object', ->
       it 'returns the object with its functions stringified', ->
         obj = { foo: 'bar', fn: (-> console.log 'fn'), count: 1 }
         result = Helpers.stringifyFunctions(obj)
 
-        expect(result).to.deep.equal { foo: 'bar', fn: "function () { return console.log('fn'); }", count: 1 }
+        expect(result).to.deep.equal { foo: 'bar', fn: "function() { return console.log('fn'); }", count: 1 }
 
       it 'recursively looks for functions to stringify', ->
         obj = { foo: { bar: { baz: -> console.log 'foo.bar.baz fn' } } }
         result = Helpers.stringifyFunctions(obj)
 
-        expect(result).to.deep.equal { foo: { bar: { baz: "function () { return console.log('foo.bar.baz fn'); }" } } }
+        expect(result).to.deep.equal { foo: { bar: { baz: "function() { return console.log('foo.bar.baz fn'); }" } } }
 
       it 'handles circular references', ->
         obj = { foo: 'bar', fn: (-> console.log 'fn'), count: 1 }
@@ -31,10 +31,10 @@ describe 'Helpers', ->
         result = Helpers.stringifyFunctions(obj)
         expect(result).to.deep.equal {
           foo: 'bar'
-          fn: "function () { return console.log('fn'); }"
+          fn: "function() { return console.log('fn'); }"
           count: 1
           ref: obj
-          fn2: "function () { return console.log('fn2'); }"
+          fn2: "function() { return console.log('fn2'); }"
         }
 
         obj1 = { fn: (-> console.log 'obj1') }
@@ -47,8 +47,8 @@ describe 'Helpers', ->
 
         result = Helpers.stringifyFunctions(objs)
         expect(result).to.deep.equal [
-          { fn: "function () { return console.log('obj1'); }", obj2: obj2 }
-          { fn: "function () { return console.log('obj2'); }", obj1: obj1 }
+          { fn: "function() { return console.log('obj1'); }", obj2: obj2 }
+          { fn: "function() { return console.log('obj2'); }", obj1: obj1 }
         ]
 
     describe 'when passing an array', ->
@@ -56,4 +56,4 @@ describe 'Helpers', ->
         arr = ['foo', (-> console.log 'fn'), bar: { baz: -> console.log 'bar.baz fn' }]
         result = Helpers.stringifyFunctions(arr)
 
-        expect(result).to.deep.equal ['foo', "function () { return console.log('fn'); }", { bar: { baz: "function () { return console.log('bar.baz fn'); }" } }]
+        expect(result).to.deep.equal ['foo', "function() { return console.log('fn'); }", { bar: { baz: "function() { return console.log('bar.baz fn'); }" } }]
