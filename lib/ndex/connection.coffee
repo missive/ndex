@@ -12,6 +12,10 @@ factory = ->
       @logging = new Connection.Logging
 
     parseMigrations: (migrations) ->
+      if version = migrations.version
+        @version = version
+        delete migrations.version
+
       keys = Object.keys(migrations).sort()
       keys.map (key) =>
         version = parseInt(key)
@@ -37,7 +41,7 @@ factory = ->
         migrations = this.parseMigrations(@migrations)
 
         try
-          request = indexedDB.open(@name, migrations.length + 1)
+          request = indexedDB.open(@name, @version || migrations.length + 1)
           if @CONNECTION_TIMEOUT? && @CONNECTION_TIMEOUT > -1
             request.__timeout = setTimeout ->
               request.__timedout = true
