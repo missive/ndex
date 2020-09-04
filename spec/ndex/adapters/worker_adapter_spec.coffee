@@ -30,11 +30,6 @@ describe 'WorkerAdapter < Adapter', ->
       expect(args).to.have.deep.property('args.name', 'foo')
       expect(args).to.have.deep.property('args.migrations')
 
-    it 'transfers migrations function as string', ->
-      args = @adapter.worker.postMessage.firstCall.args[0]
-      expect(args.args.migrations).to.deep.equal
-        foo_migration: 'function() { return this.doSomething(); }'
-
   describe '#handleMethod', ->
     beforeEach (done) -> mockWorker(done)
 

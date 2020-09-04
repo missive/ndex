@@ -13,15 +13,14 @@ factory = ->
 
     parseMigrations: (migrations) ->
       keys = Object.keys(migrations).sort()
-      keys.map (k) =>
-        version = parseInt(k)
-        titleMatches = k.match(/_(.+)/)
+      keys.map (key) =>
+        version = parseInt(key)
+        titleMatches = key.match(/_(.+)/)
         title = if titleMatches then titleMatches[1].replace(/(\w)([A-Z])/g, ($1, $2, $3) -> "#{$2} #{$3.toLowerCase()}") else ''
+        actions = migrations[key] || []
+        actions = [actions] unless Array.isArray(actions)
 
-        version: version
-        title: title
-        migration: migrations[k]
-        key: k
+        { version, title, actions, key }
 
     deleteDatabase: ->
       new Promise (resolve) =>
@@ -60,12 +59,8 @@ factory = ->
           migrationTransaction.createObjectStore('migrations', keyPath: 'version')
 
           for migration in migrations
-            # Migrations functions where transfered as string to worker
-            if typeof migration.migration is 'string'
-              migration.migration = eval("__#{migration.key} = #{migration.migration}")
-
-            (migration.migration.up || migration.migration).bind(migrationTransaction).call()
-            delete migration.migration
+            for action in migration.actions
+              migrationTransaction[action.type]?(action.args...)
 
             transaction.objectStore('migrations').put(migration)
 
@@ -425,10 +420,6 @@ factory = ->
 
             # Limit
             if limit
-              # Limit functions where transfered as string to worker
-              if typeof limit is 'string'
-                limit = eval("__limit = #{limit}")
-
               if typeof limit is 'function' && limit(result)
                 return resolve(result)
               else if limit is result.length

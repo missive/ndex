@@ -204,18 +204,20 @@ With Ndex, you don’t have handle the database version. It will always increase
 
 ```js
 migrations = {
-  '201412041358_CreateUsersObjectStore': function() {
-    this.createObjectStore('users', { keyPath: 'id', autoIncrement: true })
+  '201412041358_CreateUsersObjectStore': {
+    type: 'createObjectStore',
+    args: ['users', { keyPath: 'id', autoIncrement: true }],
   },
 
-  '201412041527_CreateOrganizationsObjectStore': function() {
-    this.createObjectStore('organizations')
-    this.createIndex('organizations', 'est', 'est')
-  },
+  '201412041527_CreateOrganizationsObjectStore': [
+    { type: 'createObjectStore', args: ['organizations'] },
+    { type: 'createIndex', args: ['organizations', 'est', 'est'] },
+  ],
 
-  '201412041527_AddJobIndexToUsers': function() {
-    this.createIndex('users', 'job', 'job')
-  }
+  '201412041527_AddJobIndexToUsers': {
+    type: 'createIndex',
+    args: ['users', 'job', 'job'],
+  },
 }
 ```
 ![](http://f.cl.ly/items/3D1k1g1J0Z29381w2f3s/Screen%20Shot%202014-12-08%20at%2010.18.22%20PM.png)

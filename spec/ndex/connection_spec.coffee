@@ -15,7 +15,7 @@ describe 'Connection', ->
       expect(migrations.map (m) -> m.key).to.deep.equal ['12345', '54321']
 
     it 'parses migrations', ->
-      migrations = @connection.parseMigrations({ '54321_CreateFooBar': (->), '12345_CreateBarFoo': (->) })
+      migrations = @connection.parseMigrations({ '54321_CreateFooBar': {}, '12345_CreateBarFoo': {} })
 
       expected = [
         { version: 12345, title: "Create bar foo", key: "12345_CreateBarFoo" }
@@ -466,16 +466,6 @@ describe 'Connection', ->
               expect(promise).to.eventually.deep.equal [
                 { name: 'e', job: 'developer', id: 1, interests: ['a'] }
                 { name: 'r', job: 'developer', id: 2, interests: ['a', 'b'] }
-              ]
-
-            it 'limits to a truthy function', ->
-              limit = (data) -> data.length is 3
-
-              promise = @connection.users.where(limit: limit)
-              expect(promise).to.eventually.deep.equal [
-                { name: 'e', job: 'developer', id: 1, interests: ['a'] }
-                { name: 'r', job: 'developer', id: 2, interests: ['a', 'b'] }
-                { name: 'p', job: 'developer', id: 3, interests: ['b'] }
               ]
 
           describe ':offset', ->

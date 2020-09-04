@@ -1,4 +1,3 @@
-require('./ndex/helpers_spec.coffee')
 require('./ndex_spec.coffee')
 
 describe('Adapters', function() {

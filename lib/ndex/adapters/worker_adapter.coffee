@@ -1,5 +1,4 @@
 Adapter = require('../adapter')
-Helpers = require('../helpers')
 ConnectionRaw = require('raw!../connection')
 WorkerRaw = require('raw!../workers/connection_worker')
 
@@ -14,10 +13,6 @@ class WorkerAdapter extends Adapter
   # Worker will instantiate a new connection object in it’s own thread
   spawnWorker: ->
     { name, migrations } = @connection
-
-    # Cannot transfer functions to a worker
-    # Will be eval’d in the worker thread
-    migrations = Helpers.stringifyFunctions(migrations)
 
     blob = new Blob([ConnectionRaw, WorkerRaw])
     blobURL = window.URL.createObjectURL(blob)
@@ -44,10 +39,6 @@ class WorkerAdapter extends Adapter
   handleMethod: (method, args...) ->
     id = @id++
     promise = this.createPromiseForId(id)
-
-    # Cannot transfer functions to a worker
-    # Will be eval’d in the worker thread for supported functions (i.e. :limit predicate)
-    args = Helpers.stringifyFunctions(args)
 
     # Schedule only 1 postMessage per event loop
     this.schedulePostMessage() unless @messages.length
