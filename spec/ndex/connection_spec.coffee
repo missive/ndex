@@ -111,13 +111,13 @@ describe 'Connection', ->
 
     # NOTE: This may fail from time to time (or always),
     #       because connection is often faster than setTimeout 0
-    it 'rejects connection promise when time runs out', ->
+    it.skip 'rejects connection promise when time runs out', ->
       connection = new Connection('foo', require('../fixtures/migrations'))
       connection.CONNECTION_TIMEOUT = 0
 
       expect(connection.open()).to.be.rejectedWith('Connection timed out')
 
-    it 'rejects request promise when time runs out', ->
+    it.skip 'rejects request promise when time runs out', ->
       expect(@connection.users.getAll()).to.be.rejectedWith('Request timed out')
 
   describe 'Logging', ->
