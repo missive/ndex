@@ -93,6 +93,34 @@ describe 'Connection', ->
         delay 0, done, =>
           expect(@connection.createTransaction.calls.length).to.equal(1)
 
+      it 'handles unknown object stores', (done) ->
+        connection = new Connection('foo', require('../fixtures/migrations'))
+        doneCount = 0
+        successCount = 0
+        errorCount = 0
+
+        handleDone = ->
+          doneCount++
+          return unless doneCount == 4
+
+          expect(successCount).to.equal(3)
+          expect(errorCount).to.equal(1)
+
+          done()
+
+        handleSuccess = ->
+          successCount++
+          handleDone()
+
+        handleErr = ->
+          errorCount++
+          handleDone()
+
+        connection.getAll('migratatations').then(handleSuccess).catch(handleErr)
+        connection.getAll('migrations').then(handleSuccess)
+        connection.getAll('migrations').then(handleSuccess)
+        connection.getAll('users').then(handleSuccess)
+
   describe 'Timeouts', ->
     beforeEach (done) ->
       connection = new Connection('foo', require('../fixtures/migrations'))

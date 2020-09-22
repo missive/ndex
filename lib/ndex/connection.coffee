@@ -101,7 +101,7 @@ factory = ->
           promises = Promise.all key.map (k) => this.get(objectStoreName, k)
           promises.then(resolve)
         else
-          this.enqueue 'read', objectStoreName, (transaction) =>
+          this.enqueue 'read', objectStoreName, reject, (transaction) =>
             @logging.addRequest(transaction, 'get', objectStoreName, indexName, { key: key })
 
             request = this.createRequest({ transaction, objectStoreName, indexName, reject })
@@ -116,7 +116,7 @@ factory = ->
 
     getFirst: (objectStoreName, indexName) ->
       new Promise (resolve, reject) =>
-        this.enqueue 'read', objectStoreName, (transaction) =>
+        this.enqueue 'read', objectStoreName, reject, (transaction) =>
           @logging.addRequest(transaction, 'getFirst', objectStoreName, indexName)
 
           request = this.createRequest({ transaction, objectStoreName, indexName, reject })
@@ -135,7 +135,7 @@ factory = ->
 
     getAll: (objectStoreName, indexName) ->
       new Promise (resolve, reject) =>
-        this.enqueue 'read', objectStoreName, (transaction) =>
+        this.enqueue 'read', objectStoreName, reject, (transaction) =>
           @logging.addRequest(transaction, 'getAll', objectStoreName, indexName)
 
           result = []
@@ -154,7 +154,7 @@ factory = ->
 
     count: (objectStoreName, indexName) ->
       new Promise (resolve, reject) =>
-        this.enqueue 'read', objectStoreName, (transaction) =>
+        this.enqueue 'read', objectStoreName, reject, (transaction) =>
           @logging.addRequest(transaction, 'count', objectStoreName, indexName)
 
           request = this.createRequest({ transaction, objectStoreName, indexName, reject })
@@ -178,7 +178,7 @@ factory = ->
           promises = Promise.all key.map (key, i) => this.add(objectStoreName, key, data[i])
           promises.then(resolve)
         else
-          this.enqueue 'write', objectStoreName, (transaction) =>
+          this.enqueue 'write', objectStoreName, reject, (transaction) =>
             @logging.addRequest(transaction, 'add', objectStoreName, null, { key: key, data: data })
 
             args = if key then [data, key] else [data]
@@ -192,7 +192,7 @@ factory = ->
 
     update: (objectStoreName, key, value) ->
       new Promise (resolve, reject) =>
-        this.enqueue 'write', objectStoreName, (transaction) =>
+        this.enqueue 'write', objectStoreName, reject, (transaction) =>
           @logging.addRequest(transaction, 'update', objectStoreName, null, { key: key, data: value })
 
           getRequest = this.createRequest({ transaction, objectStoreName, reject })
@@ -228,7 +228,7 @@ factory = ->
 
     increment: (objectStoreName, key, value = 1, decrement) ->
       new Promise (resolve, reject) =>
-        this.enqueue 'write', objectStoreName, (transaction) =>
+        this.enqueue 'write', objectStoreName, reject, (transaction) =>
           @logging.addRequest(transaction, (if decrement then 'decrement' else 'increment'), objectStoreName, null, { key: key, data: value })
 
           getRequest = this.createRequest({ transaction, objectStoreName, reject })
@@ -272,7 +272,7 @@ factory = ->
           promises = Promise.all key.map (k) => this.delete(objectStoreName, k)
           promises.then(resolve)
         else
-          this.enqueue 'write', objectStoreName, (transaction) =>
+          this.enqueue 'write', objectStoreName, reject, (transaction) =>
             @logging.addRequest(transaction, 'delete', objectStoreName, null, { key: key })
 
             request = this.createRequest({ transaction, objectStoreName, reject })
@@ -288,7 +288,7 @@ factory = ->
 
     clear: (objectStoreName) ->
       new Promise (resolve, reject) =>
-        this.enqueue 'write', objectStoreName, (transaction) =>
+        this.enqueue 'write', objectStoreName, reject, (transaction) =>
           @logging.addRequest(transaction, 'clear', objectStoreName)
 
           request = this.createRequest({ transaction, objectStoreName, reject })
@@ -323,7 +323,7 @@ factory = ->
       readWrite = if predicates.remove then 'write' else 'read'
 
       new Promise (resolve, reject) =>
-        this.enqueue readWrite, objectStoreName, (transaction) =>
+        this.enqueue readWrite, objectStoreName, reject, (transaction) =>
           @logging.addRequest(transaction, 'where', objectStoreName, indexName, { data: predicates })
 
           { lt, lteq, gt, gteq, eq, limit, offset, only, contains, except, uniq, order, remove } = predicates
@@ -469,6 +469,10 @@ factory = ->
     createTransaction: (mode, objectStoreNames, callback) ->
       this.open()
         .then =>
+          db = @database
+          objectStoreNames = objectStoreNames.filter (objectStore) ->
+            db.objectStoreNames.contains(objectStore)
+
           transaction = @database.transaction(objectStoreNames, mode)
           callback(transaction)
 
@@ -487,8 +491,8 @@ factory = ->
       result
 
     # Queue
-    enqueue: (readwrite, objectStoreName, callback) ->
-      request = { readwrite, objectStoreName, callback }
+    enqueue: (readwrite, objectStoreName, reject, callback) ->
+      request = { readwrite, objectStoreName, reject, callback }
 
       this.scheduleTransaction() unless @queue.length
       @queue.push(request)
@@ -506,7 +510,9 @@ factory = ->
 
         this.createTransaction mode, objectStoreNames, (transaction) =>
           @logging.addTransaction(transaction, objectStoreNames)
-          request.callback(transaction) for request in requests
+          for request in requests
+            try request.callback(transaction)
+            catch err then request.reject(err)
       , 0
 
   # Migration
