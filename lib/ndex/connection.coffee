@@ -34,14 +34,15 @@ factory = ->
         request = indexedDB.deleteDatabase(@database.name)
         request.onsuccess = (e) -> setTimeout (-> resolve()), 0
 
-    open: ->
+    open: ({ withoutVersion } = {}) ->
       return @dbPromise if @dbPromise
       @dbPromise = new Promise (resolve, reject) =>
         return reject('indexedDB isn’t supported') unless self.indexedDB
         migrations = this.parseMigrations(@migrations)
 
         try
-          request = indexedDB.open(@name, @version || migrations.length + 1)
+          version = if withoutVersion then undefined else @version || migrations.length + 1
+          request = indexedDB.open(@name, version)
           if @CONNECTION_TIMEOUT? && @CONNECTION_TIMEOUT > -1
             request.__timeout = setTimeout ->
               request.__timedout = true
@@ -86,14 +87,16 @@ factory = ->
 
         # Error
         request.onerror = (e) =>
+          if !withoutVersion && request.error.name == 'VersionError'
+            this.close()
+            return this.open({ withoutVersion: true })
+              .then(resolve).catch(reject)
+
           reject(request.error.message || request.error.name)
 
     close: ->
-      new Promise (resolve) =>
-        delete @dbPromise if @dbPromise
-        @database.close() if @database
-
-        resolve()
+      delete @dbPromise if @dbPromise
+      @database.close() if @database
 
     get: (objectStoreName, key, indexName) ->
       new Promise (resolve, reject) =>

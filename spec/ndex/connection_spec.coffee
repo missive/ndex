@@ -37,6 +37,13 @@ describe 'Connection', ->
       @connection.foozle.add({ foo: 'bar' })
       expect(@connection.add.firstCall.args).to.deep.equal(['foozle', { foo: 'bar' }])
 
+    it 'handles connecting to DB with lower version provided', ->
+      connection1 = new Connection('versions', { version: 2 })
+      connection2 = new Connection('versions', { version: 1 })
+
+      connection1.open()
+      connection2.open()
+
   describe 'Requests', ->
     beforeEach ->
       @connection = new Connection('foo', {})
