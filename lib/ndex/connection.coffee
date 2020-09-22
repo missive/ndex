@@ -548,7 +548,7 @@ factory = ->
       @queues = []
 
     addTransaction: (transaction, objectStoreNames) ->
-      return unless @handleLog
+      return unless transaction && @handleLog
 
       @queues.push {
         transaction: transaction
@@ -563,7 +563,7 @@ factory = ->
       transaction.oncomplete = callback
 
     addRequest: (transaction, method, objectStoreName, indexName, data) ->
-      return unless @handleLog
+      return unless transaction && @handleLog
 
       queue = @queues.filter((q) -> q.transaction is transaction)[0]
       return unless queue
@@ -575,7 +575,7 @@ factory = ->
         data: data
 
     logTransaction: (transaction) ->
-      return unless @handleLog
+      return unless transaction && @handleLog
 
       queue = @queues.filter((q) -> q.transaction is transaction)[0]
       return unless queue
