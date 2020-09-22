@@ -8,7 +8,7 @@ factory = ->
 
     constructor: (@name, @migrations) ->
       @database = null
-      @queue = {}
+      @queue = []
       @logging = new Connection.Logging
 
     parseMigrations: (migrations) ->
@@ -466,10 +466,10 @@ factory = ->
 
       request
 
-    createTransaction: (mode, objectStoreName, callback) ->
+    createTransaction: (mode, objectStoreNames, callback) ->
       this.open()
         .then =>
-          transaction = @database.transaction([objectStoreName], mode)
+          transaction = @database.transaction(objectStoreNames, mode)
           callback(transaction)
 
         .catch (err) =>
@@ -487,28 +487,25 @@ factory = ->
       result
 
     # Queue
-    # TOOD: Support multiple objectStores per transaction
-    #       https://github.com/missive/ndex/issues/1
     enqueue: (readwrite, objectStoreName, callback) ->
-      @queue[objectStoreName] ||= []
+      request = { readwrite, objectStoreName, callback }
 
-      request =
-        readwrite: readwrite
-        callback: callback
+      this.scheduleTransaction() unless @queue.length
+      @queue.push(request)
 
-      this.scheduleTransaction(objectStoreName) unless @queue[objectStoreName].length
-      @queue[objectStoreName].push(request)
-
-    scheduleTransaction: (objectStoreName) ->
+    scheduleTransaction: ->
       setTimeout =>
-        requests = @queue[objectStoreName].splice(0)
+        requests = @queue.splice(0)
 
         modes = requests.map (r) -> r.readwrite
         needsWriteMode = modes.some (m) -> m is 'write'
         mode = if needsWriteMode then 'readwrite' else 'readonly'
 
-        this.createTransaction mode, objectStoreName, (transaction) =>
-          @logging.addTransaction(transaction, objectStoreName)
+        objectStoreNames = requests.map (r) -> r.objectStoreName
+        objectStoreNames = objectStoreNames.filter (o, i, self) -> self.indexOf(o) is i
+
+        this.createTransaction mode, objectStoreNames, (transaction) =>
+          @logging.addTransaction(transaction, objectStoreNames)
           request.callback(transaction) for request in requests
       , 0
 

@@ -47,14 +47,14 @@ describe 'Connection', ->
         simple.mock(@connection, 'scheduleTransaction', ->)
 
         @connection.enqueue('write', 'foo') for i in [1..5]
-        expect(@connection.queue.foo.length).to.equal(5)
+        expect(@connection.queue.length).to.equal(5)
 
       it 'clears requests on event loop', (done) ->
         @connection.enqueue('write', 'foo') for i in [1..5]
-        expect(@connection.queue.foo.length).to.equal(5)
+        expect(@connection.queue.length).to.equal(5)
 
         delay 0, done, =>
-          expect(@connection.queue.foo.length).to.equal(0)
+          expect(@connection.queue.length).to.equal(0)
 
       it 'schedules 1 transaction per event loop', (done) ->
         simple.mock(@connection, 'scheduleTransaction')
@@ -84,15 +84,14 @@ describe 'Connection', ->
         delay 0, done, =>
           expect(@connection.createTransaction.firstCall.args[0]).to.equal('readwrite')
 
-      # https://github.com/missive/ndex/issues/1
-      it 'creates 1 transaction per objectStore', (done) ->
+      it 'merges object stores', (done) ->
         @connection.enqueue('read', 'foo')
         @connection.enqueue('write', 'foo')
         @connection.enqueue('read', 'bar')
         @connection.enqueue('write', 'bar')
 
         delay 0, done, =>
-          expect(@connection.createTransaction.calls.length).to.equal(2)
+          expect(@connection.createTransaction.calls.length).to.equal(1)
 
   describe 'Timeouts', ->
     beforeEach (done) ->
