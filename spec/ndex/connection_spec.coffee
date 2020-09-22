@@ -128,6 +128,11 @@ describe 'Connection', ->
         connection.getAll('migrations').then(handleSuccess)
         connection.getAll('users').then(handleSuccess)
 
+      it 'doesn’t create a transaction with empty storeNames', (done) ->
+        connection = new Connection('foo', require('../fixtures/migrations'))
+        connection.getAll('migratatations').catch ->
+          done()
+
   describe 'Timeouts', ->
     beforeEach (done) ->
       connection = new Connection('foo', require('../fixtures/migrations'))

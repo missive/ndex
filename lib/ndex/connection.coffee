@@ -476,7 +476,9 @@ factory = ->
           objectStoreNames = objectStoreNames.filter (objectStore) ->
             db.objectStoreNames.contains(objectStore)
 
-          transaction = @database.transaction(objectStoreNames, mode)
+          try transaction = @database.transaction(objectStoreNames, mode)
+          catch error
+
           callback(transaction)
 
         .catch (err) =>
