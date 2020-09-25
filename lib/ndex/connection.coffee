@@ -107,11 +107,14 @@ factory = ->
           this.enqueue 'read', objectStoreName, reject, (transaction) =>
             @logging.addRequest(transaction, 'get', objectStoreName, indexName, { key: key })
 
-            request = this.createRequest({ transaction, objectStoreName, indexName, reject })
-            request.get(key).onsuccess = (e) ->
-              clearTimeout(request.__timeout)
-              return if request.__timedout
+            params = {
+              method: 'get'
+              args: key
+              transaction, reject
+              objectStoreName, indexName
+            }
 
+            this.createRequest params, (e) ->
               value = e.target.result
               value = null if value is undefined
 
@@ -122,37 +125,47 @@ factory = ->
         this.enqueue 'read', objectStoreName, reject, (transaction) =>
           @logging.addRequest(transaction, 'getFirst', objectStoreName, indexName)
 
-          request = this.createRequest({ transaction, objectStoreName, indexName, reject })
-          request.openCursor().onsuccess = (e) ->
-            clearTimeout(request.__timeout)
-            return if request.__timedout
+          params = {
+            method: 'openCursor'
+            transaction, reject
+            objectStoreName, indexName
+          }
 
-            if cursor = e.target.result
-              value = cursor.value
-              unless request.keyPath
-                value._key = cursor.key
+          this.createRequest params, (e) ->
+            request = e.target
+            objectStore = request.source
 
-              resolve(value)
-            else
-              resolve(null)
+            unless cursor = request.result
+              return resolve(null)
+
+            value = cursor.value
+            value._key = cursor.key unless objectStore.keyPath
+
+            resolve(value)
 
     getAll: (objectStoreName, indexName) ->
       new Promise (resolve, reject) =>
         this.enqueue 'read', objectStoreName, reject, (transaction) =>
           @logging.addRequest(transaction, 'getAll', objectStoreName, indexName)
 
-          result = []
-          request = this.createRequest({ transaction, objectStoreName, indexName, reject })
-          request.openCursor().onsuccess = (e) ->
-            clearTimeout(request.__timeout)
-            return if request.__timedout
+          results = []
+          params = {
+            method: 'openCursor'
+            transaction, reject
+            objectStoreName, indexName
+          }
 
-            return resolve(result) unless cursor = e.target.result
+          this.createRequest params, (e) ->
+            request = e.target
+            objectStore = request.source
+
+            unless cursor = e.target.result
+              return resolve(results)
+
             value = cursor.value
-            unless request.keyPath
-              value._key = cursor.key
+            value._key = cursor.key unless objectStore.keyPath
 
-            result.push(value)
+            results.push(value)
             cursor.continue()
 
     count: (objectStoreName, indexName) ->
@@ -160,11 +173,13 @@ factory = ->
         this.enqueue 'read', objectStoreName, reject, (transaction) =>
           @logging.addRequest(transaction, 'count', objectStoreName, indexName)
 
-          request = this.createRequest({ transaction, objectStoreName, indexName, reject })
-          request.count().onsuccess = (e) ->
-            clearTimeout(request.__timeout)
-            return if request.__timedout
+          params = {
+            method: 'count'
+            transaction, reject
+            objectStoreName, indexName
+          }
 
+          this.createRequest params, (e) ->
             value = e.target.result
             value = 0 unless value
 
@@ -185,11 +200,13 @@ factory = ->
             @logging.addRequest(transaction, 'add', objectStoreName, null, { key: key, data: data })
 
             args = if key then [data, key] else [data]
-            request = this.createRequest({ transaction, objectStoreName, reject })
-            request.put(args...).onsuccess = (e) ->
-              clearTimeout(request.__timeout)
-              return if request.__timedout
+            params = {
+              method: 'put'
+              args: args
+              transaction, objectStoreName, reject
+            }
 
+            this.createRequest params, (e) ->
               data._key = e.target.result
               resolve(data)
 
@@ -198,14 +215,19 @@ factory = ->
         this.enqueue 'write', objectStoreName, reject, (transaction) =>
           @logging.addRequest(transaction, 'update', objectStoreName, null, { key: key, data: value })
 
-          getRequest = this.createRequest({ transaction, objectStoreName, reject })
-          getRequest.get(key).onsuccess = (e) =>
-            clearTimeout(getRequest.__timeout)
-            return if getRequest.__timedout
+          params = {
+            method: 'get'
+            args: key
+            transaction, objectStoreName, reject
+          }
 
-            keyPath = e.target.source.keyPath
+          this.createRequest params, (e) =>
+            request = e.target
+            objectStore = request.source
+            keyPath = objectStore.keyPath
+
             hasKeyPath = !!keyPath
-            data = e.target.result
+            data = request.result
 
             if data is undefined
               data = value
@@ -222,11 +244,13 @@ factory = ->
               deepUpdate(value, data)
 
             args = if hasKeyPath then [data] else [data, key]
-            putRequest = this.createRequest({ transaction, objectStoreName, reject })
-            putRequest.put(args...).onsuccess = ->
-              clearTimeout(putRequest.__timeout)
-              return if putRequest.__timedout
+            params = {
+              method: 'put'
+              args: args
+              transaction, objectStoreName, reject
+            }
 
+            this.createRequest params, (e) ->
               resolve(data)
 
     increment: (objectStoreName, key, value = 1, decrement) ->
@@ -234,14 +258,19 @@ factory = ->
         this.enqueue 'write', objectStoreName, reject, (transaction) =>
           @logging.addRequest(transaction, (if decrement then 'decrement' else 'increment'), objectStoreName, null, { key: key, data: value })
 
-          getRequest = this.createRequest({ transaction, objectStoreName, reject })
-          getRequest.get(key).onsuccess = (e) =>
-            clearTimeout(getRequest.__timeout)
-            return if getRequest.__timedout
+          params = {
+            method: 'get'
+            args: key
+            transaction, objectStoreName, reject
+          }
 
-            keyPath = e.target.source.keyPath
+          this.createRequest params, (e) =>
+            request = e.target
+            objectStore = request.source
+            keyPath = objectStore.keyPath
+
             hasKeyPath = !!keyPath
-            data = e.target.result
+            data = request.result
 
             if hasKeyPath
               deepIncrement = (o, root) ->
@@ -259,11 +288,13 @@ factory = ->
               data += if decrement then -value else value
 
             args = if hasKeyPath then [data] else [data, key]
-            putRequest = this.createRequest({ transaction, objectStoreName, reject })
-            putRequest.put(args...).onsuccess = ->
-              clearTimeout(putRequest.__timeout)
-              return if putRequest.__timedout
+            params = {
+              method: 'put'
+              args: args
+              transaction, objectStoreName, reject
+            }
 
+            this.createRequest params, (e) ->
               resolve(data)
 
     decrement: (objectStoreName, key, value) ->
@@ -278,11 +309,13 @@ factory = ->
           this.enqueue 'write', objectStoreName, reject, (transaction) =>
             @logging.addRequest(transaction, 'delete', objectStoreName, null, { key: key })
 
-            request = this.createRequest({ transaction, objectStoreName, reject })
-            request.delete(key).onsuccess = (e) ->
-              clearTimeout(request.__timeout)
-              return if request.__timedout
+            params = {
+              method: 'delete'
+              args: key
+              transaction, objectStoreName, reject
+            }
 
+            this.createRequest params, (e) ->
               resolve(key)
 
     deleteWhere: (objectStoreName, predicates, indexName) ->
@@ -294,11 +327,12 @@ factory = ->
         this.enqueue 'write', objectStoreName, reject, (transaction) =>
           @logging.addRequest(transaction, 'clear', objectStoreName)
 
-          request = this.createRequest({ transaction, objectStoreName, reject })
-          request.clear().onsuccess = ->
-            clearTimeout(request.__timeout)
-            return if request.__timedout
+          params = {
+            method: 'clear'
+            transaction, objectStoreName, reject
+          }
 
+          this.createRequest params, (e) ->
             resolve()
 
     clearAll: ->
@@ -369,7 +403,7 @@ factory = ->
             range = IDBKeyRange.upperBound(upper.value, upper.open)
 
           # Request
-          result = []
+          results = []
           count = 0
           knownUniques = {}
 
@@ -377,20 +411,27 @@ factory = ->
             v = [v] unless Array.isArray(v)
             v.indexOf(object[k]) isnt -1
 
-          request = this.createRequest({ transaction, objectStoreName, indexName, reject })
-          request = if range then request.openCursor(range, order) else request.openCursor()
-          request.onsuccess = (e) =>
-            clearTimeout(request.__timeout)
-            return if request.__timedout
+          args = if range then [range, order] else undefined
+          params = {
+            method: 'openCursor'
+            args: args
+            transaction, reject
+            objectStoreName, indexName
+          }
 
-            return resolve(result) unless cursor = e.target.result
+          this.createRequest params, (e) =>
+            request = e.target
+            objectStore = request.source
+
+            unless cursor = e.target.result
+              return resolve(results)
+
             value = cursor.value
 
             # Only
             if eqIsArray
-              keyPath = e.target.source.keyPath
               only ||= {}
-              only[keyPath] = eq
+              only[objectStore.keyPath] = eq
 
             for k, v of only
               return cursor.continue() unless hasValues(value, k, v)
@@ -421,16 +462,16 @@ factory = ->
             if offset && count <= offset
               return cursor.continue()
 
-            # Add value to the result
-            result.push(value)
+            # Add value to the results
+            results.push(value)
             cursor.delete() if remove
 
             # Limit
             if limit
-              if typeof limit is 'function' && limit(result)
-                return resolve(result)
-              else if limit is result.length
-                return resolve(result)
+              if typeof limit is 'function' && limit(results)
+                return resolve(results)
+              else if limit is results.length
+                return resolve(results)
 
             cursor.continue()
 
@@ -457,15 +498,33 @@ factory = ->
 
       namespace
 
-    createRequest: ({ transaction, objectStoreName, indexName, reject }) ->
+    getObjectStore: ({ transaction, objectStoreName, indexName }) ->
       objectStore = transaction.objectStore(objectStoreName)
-      request = if indexName then objectStore.index(indexName) else objectStore
+      if indexName then objectStore.index(indexName) else objectStore
 
-      if reject && @REQUEST_TIMEOUT? && @REQUEST_TIMEOUT > -1
+    createRequest: ({ method, args, transaction, objectStoreName, indexName, reject }, callback) ->
+      objectStore = transaction.objectStore(objectStoreName)
+      objectStore = objectStore.index(indexName) if indexName
+
+      args = [args] unless Array.isArray(args)
+      request = objectStore[method](args...)
+
+      if @REQUEST_TIMEOUT? && @REQUEST_TIMEOUT > -1
         request.__timeout = setTimeout ->
           request.__timedout = true
-          reject(new Error('Request timed out'))
+          reject?(new Error('Request timed out'))
         , @REQUEST_TIMEOUT
+
+      request.onsuccess = (e) ->
+        clearTimeout(request.__timeout)
+        return if request.__timedout
+
+        callback(e)
+
+      request.onerror = (e) ->
+        clearTimeout(request.__timeout)
+        return if request.__timedout
+        reject?(request.error)
 
       request
 
