@@ -8,7 +8,7 @@ factory = ->
 
     constructor: (@name, @migrations) ->
       @database = null
-      @queue = []
+      @queue = {}
       @logging = new Connection.Logging
 
     parseMigrations: (migrations) ->
@@ -528,14 +528,10 @@ factory = ->
 
       request
 
-    createTransaction: (mode, objectStoreNames, callback) ->
+    createTransaction: (mode, objectStoreName, callback) ->
       this.open()
         .then =>
-          db = @database
-          objectStoreNames = objectStoreNames.filter (objectStore) ->
-            db.objectStoreNames.contains(objectStore)
-
-          try transaction = @database.transaction(objectStoreNames, mode)
+          try transaction = @database.transaction([objectStoreName], mode)
           catch error
 
           callback(transaction)
@@ -556,24 +552,22 @@ factory = ->
 
     # Queue
     enqueue: (readwrite, objectStoreName, reject, callback) ->
+      @queue[objectStoreName] ||= []
       request = { readwrite, objectStoreName, reject, callback }
 
-      this.scheduleTransaction() unless @queue.length
-      @queue.push(request)
+      this.scheduleTransaction(objectStoreName) unless @queue[objectStoreName].length
+      @queue[objectStoreName].push(request)
 
-    scheduleTransaction: ->
+    scheduleTransaction: (objectStoreName) ->
       setTimeout =>
-        requests = @queue.splice(0)
+        requests = @queue[objectStoreName].splice(0)
 
         modes = requests.map (r) -> r.readwrite
         needsWriteMode = modes.some (m) -> m is 'write'
         mode = if needsWriteMode then 'readwrite' else 'readonly'
 
-        objectStoreNames = requests.map (r) -> r.objectStoreName
-        objectStoreNames = objectStoreNames.filter (o, i, self) -> self.indexOf(o) is i
-
-        this.createTransaction mode, objectStoreNames, (transaction) =>
-          @logging.addTransaction(transaction, objectStoreNames)
+        this.createTransaction mode, objectStoreName, (transaction) =>
+          @logging.addTransaction(transaction, objectStoreName)
           for request in requests
             try request.callback(transaction)
             catch err then request.reject(err)
