@@ -7,44 +7,51 @@ var webpackConfig = require('./webpack.config.js');
 var port = process.env.PORT || 8080;
 var reloadPort = process.env.RELOAD_PORT || 35729;
 
-var webpackFor = function(target) {
+function webpackFor(target) {
   del([target])
 
   configs = webpackConfig[target]
   if (!Array.isArray(configs)) { configs = [configs] }
 
+  let promises = []
+
   for (var i = 0; i < configs.length; i++) {
     config = configs[i]
 
-    webpack(config)
+    let promise = webpack(config)
       .pipe(gulp.dest(target))
+
+    promises.push(promise)
   }
+
+  return Promise.all(promises)
 }
 
-gulp.task('build', function () {
-  webpackFor('build')
-});
+function build() {
+  return webpackFor('build')
+}
 
-gulp.task('dist', function() {
-  webpackFor('dist')
-})
+function dist() {
+  return webpackFor('dist')
+}
 
-gulp.task('serve', function () {
+function serve() {
   connect.server({
     port: port,
     livereload: {
       port: reloadPort
     }
   });
-});
+}
 
-gulp.task('reload-js', function () {
+function reloadJs() {
   return gulp.src('./build/*.js')
     .pipe(connect.reload());
-});
+}
 
-gulp.task('watch', function () {
-  gulp.watch(['./build/*.js'], ['reload-js']);
-});
+function watch() {
+  gulp.watch(['./build/*.js'], reloadJs);
+}
 
-gulp.task('default', ['build', 'serve', 'watch']);
+exports.dist = dist
+exports.default = gulp.parallel(build, serve, watch)
