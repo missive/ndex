@@ -3,10 +3,10 @@ factory = ->
 
   # Public API
   class Connection.API
-    CONNECTION_TIMEOUT: 3000
-    REQUEST_TIMEOUT: 3000
+    CONNECTION_TIMEOUT: 1000
+    REQUEST_TIMEOUT: 2000
 
-    constructor: (@name, @migrations) ->
+    constructor: (@name, @migrations, @options = {}) ->
       @database = null
       @queue = {}
       @logging = new Connection.Logging
@@ -43,11 +43,12 @@ factory = ->
         try
           version = if withoutVersion then undefined else @version || migrations.length + 1
           request = indexedDB.open(@name, version)
-          if @CONNECTION_TIMEOUT? && @CONNECTION_TIMEOUT > -1
+          connectionTimeout = @options.connectionTimeout ? @CONNECTION_TIMEOUT
+          if connectionTimeout? && connectionTimeout > -1
             request.__timeout = setTimeout ->
               request.__timedout = true
               reject(new Error('Connection timed out'))
-            , @CONNECTION_TIMEOUT
+            , connectionTimeout
         catch e
           clearTimeout(request.__timeout)
           return reject(e.message || e.name)
@@ -508,12 +509,13 @@ factory = ->
 
       args = [args] unless Array.isArray(args)
       request = objectStore[method](args...)
+      requestTimeout = @options.requestTimeout ? @REQUEST_TIMEOUT
 
-      if @REQUEST_TIMEOUT? && @REQUEST_TIMEOUT > -1
+      if requestTimeout? && requestTimeout > -1
         request.__timeout = setTimeout ->
           request.__timedout = true
           reject?(new Error('Request timed out'))
-        , @REQUEST_TIMEOUT
+        , requestTimeout
 
       request.onsuccess = (e) ->
         clearTimeout(request.__timeout)

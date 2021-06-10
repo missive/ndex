@@ -6,13 +6,13 @@ class Ndex
   constructor: ->
     @connections = {}
 
-  connect: (name, migrations, adapter = null) ->
+  connect: (name, migrations, { adapter, options } = {}) ->
     new Promise (resolve, reject) =>
       unless adapter
         if connection = @connections[name]
           return reject(new Error("Already connected to “#{name}”"))
 
-        connection = new Connection(name, migrations)
+        connection = new Connection(name, migrations, options)
         adapter = @connections[name] = this.getAdapter(connection)
 
       adapter.handleMethod('open')
@@ -26,7 +26,7 @@ class Ndex
             # Try to connect in the main thread
             adapter = @connections[name] = new BrowserAdapter(connection)
             console.info "Ndex: Fallbacking to BrowserAdapter for “#{name}” because “#{error}”"
-            return resolve(this.connect(null, null, adapter))
+            return resolve(this.connect(null, null, { adapter }))
 
           reject("Ndex: #{error}")
 
