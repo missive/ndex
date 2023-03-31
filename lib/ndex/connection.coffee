@@ -3,8 +3,8 @@ factory = ->
 
   # Public API
   class Connection.API
-    CONNECTION_TIMEOUT: 1000
-    REQUEST_TIMEOUT: 2000
+    CONNECTION_TIMEOUT: 5000
+    REQUEST_TIMEOUT: 5000
 
     constructor: (@name, @migrations, @options = {}) ->
       @database = null
