@@ -514,7 +514,7 @@ factory = ->
       if requestTimeout? && requestTimeout > -1
         request.__timeout = setTimeout ->
           request.__timedout = true
-          reject?(new Error('Request timed out'))
+          transaction.abort()
         , requestTimeout
 
       request.onsuccess = (e) ->
@@ -525,7 +525,6 @@ factory = ->
 
       request.onerror = (e) ->
         clearTimeout(request.__timeout)
-        return if request.__timedout
         reject?(request.error)
 
       request

@@ -156,7 +156,7 @@ describe 'Connection', ->
       expect(connection.open()).to.be.rejectedWith('Connection timed out')
 
     it 'rejects request promise when time runs out', ->
-      expect(@connection.users.getAll()).to.be.rejectedWith('Request timed out')
+      expect(@connection.users.getAll()).to.be.rejectedWith('The transaction was aborted, so the request cannot be fulfilled.')
 
   describe 'Logging', ->
     beforeEach ->
