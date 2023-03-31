@@ -347,12 +347,12 @@ factory = ->
 
     reset: (objectStoreName, key, data) ->
       new Promise (resolve, reject) =>
-        clearPromise = this.clear(objectStoreName)
-        clearPromise.catch(reject)
-        clearPromise.then =>
-          addPromise = this.add(objectStoreName, key, data)
-          addPromise.catch(reject)
-          addPromise.then(resolve)
+        this.clear(objectStoreName)
+          .then =>
+            this.add(objectStoreName, key, data)
+              .then(resolve)
+              .catch(reject)
+          .catch(reject)
 
     index: (objectStoreName, indexName) ->
       this.createNamespaceForIndex(indexName, objectStoreName)
