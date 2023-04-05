@@ -513,6 +513,7 @@ factory = ->
 
       if requestTimeout? && requestTimeout > -1
         request.__timeout = setTimeout ->
+          return if request.__handled
           request.__timedout = true
           transaction.abort()
         , requestTimeout
@@ -520,11 +521,13 @@ factory = ->
       request.onsuccess = (e) ->
         clearTimeout(request.__timeout)
         return if request.__timedout
+        request.__handled = true
 
         callback(e)
 
       request.onerror = (e) ->
         clearTimeout(request.__timeout)
+        request.__handled = true
         reject?(request.error)
 
       request
