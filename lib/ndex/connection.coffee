@@ -515,7 +515,7 @@ factory = ->
         request.__timeout = setTimeout ->
           return if request.__handled
           request.__timedout = true
-          transaction.abort()
+          try transaction.abort()
         , requestTimeout
 
       request.onsuccess = (e) ->
