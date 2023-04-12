@@ -46,17 +46,21 @@ factory = ->
           connectionTimeout = @options.connectionTimeout ? @CONNECTION_TIMEOUT
           if connectionTimeout? && connectionTimeout > -1
             request.__timeout = setTimeout ->
+              return if request.__handled
               request.__timedout = true
               reject(new Error('Connection timed out'))
             , connectionTimeout
         catch e
           clearTimeout(request.__timeout)
+          return if request.__timedout
+          request.__handled = true
           return reject(e.message || e.name)
 
         # Migrations
         request.onupgradeneeded = (e) =>
           clearTimeout(request.__timeout)
           return if request.__timedout
+          request.__handled = true
 
           db = e.target.result
           transaction = e.target.transaction
@@ -74,6 +78,7 @@ factory = ->
         request.onsuccess = (e) =>
           clearTimeout(request.__timeout)
           return if request.__timedout
+          request.__handled = true
 
           db = e.target.result
           objectStoreNames = [].slice.call(db.objectStoreNames)
@@ -88,6 +93,10 @@ factory = ->
 
         # Error
         request.onerror = (e) =>
+          clearTimeout(request.__timeout)
+          return if request.__timedout
+          request.__handled = true
+
           if !withoutVersion && request.error.name == 'VersionError'
             this.close()
             return this.open({ withoutVersion: true })
