@@ -102,8 +102,9 @@ factory = ->
     get: (objectStoreName, key, indexName) ->
       new Promise (resolve, reject) =>
         if Array.isArray(key)
-          promises = Promise.all key.map (k) => this.get(objectStoreName, k)
-          promises.then(resolve)
+          Promise.all(key.map (k) => this.get(objectStoreName, k))
+            .then(resolve)
+            .catch(reject)
         else
           this.enqueue 'read', objectStoreName, reject, (transaction) =>
             @logging.addRequest(transaction, 'get', objectStoreName, indexName, { key: key })
@@ -191,11 +192,13 @@ factory = ->
 
       new Promise (resolve, reject) =>
         if !key && Array.isArray(data)
-          promises = Promise.all data.map (d) => this.add(objectStoreName, d)
-          promises.then(resolve)
+          Promise.all(data.map (d) => this.add(objectStoreName, d))
+            .then(resolve)
+            .catch(reject)
         else if key && Array.isArray(key) && Array.isArray(data)
-          promises = Promise.all key.map (key, i) => this.add(objectStoreName, key, data[i])
-          promises.then(resolve)
+          Promise.all(key.map (key, i) => this.add(objectStoreName, key, data[i]))
+            .then(resolve)
+            .catch(reject)
         else
           this.enqueue 'write', objectStoreName, reject, (transaction) =>
             @logging.addRequest(transaction, 'add', objectStoreName, null, { key: key, data: data })
@@ -304,8 +307,9 @@ factory = ->
     delete: (objectStoreName, key) ->
       new Promise (resolve, reject) =>
         if Array.isArray(key)
-          promises = Promise.all key.map (k) => this.delete(objectStoreName, k)
-          promises.then(resolve)
+          Promise.all(key.map (k) => this.delete(objectStoreName, k))
+            .then(resolve)
+            .catch(reject)
         else
           this.enqueue 'write', objectStoreName, reject, (transaction) =>
             @logging.addRequest(transaction, 'delete', objectStoreName, null, { key: key })
@@ -341,9 +345,9 @@ factory = ->
         objectStoreNames = [@database.objectStoreNames...]
         objectStoreNames = objectStoreNames.filter (objectStoreName) -> objectStoreName isnt 'migrations'
 
-        promises = Promise.all objectStoreNames.map (objectStoreName) => this.clear(objectStoreName)
-        promises.then(resolve)
-        promises.catch(reject)
+        Promise.all(objectStoreNames.map (objectStoreName) => this.clear(objectStoreName))
+          .then(resolve)
+          .catch(reject)
 
     reset: (objectStoreName, key, data) ->
       new Promise (resolve, reject) =>

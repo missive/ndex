@@ -157,6 +157,7 @@ describe 'Connection', ->
 
     it 'rejects request promise when time runs out', ->
       expect(@connection.users.getAll()).to.be.rejectedWith('The transaction was aborted, so the request cannot be fulfilled.')
+      expect(@connection.users.add([{ id: 'a' }])).to.be.rejectedWith('The transaction was aborted, so the request cannot be fulfilled.')
 
   describe 'Logging', ->
     beforeEach ->
