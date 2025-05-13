@@ -1,6 +1,6 @@
 {
-  "name": "ndex",
-  "version": "0.1.0",
+  "name": "@missive/ndex",
+  "version": "1.0.0",
   "description": "Ndex is an indexedDB wrapper",
   "author": "Etienne Lemay <etienne@heliom.ca>",
   "repository": {
